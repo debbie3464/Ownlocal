@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OwnLocal | Hyper-Local Equity</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600;700&family=Quicksand:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+/* ── ROOT ── */
+:root{--soft-pink:#fff5f7;--deep-pink:#ff8fa3;--berry:#5d4037;--glass:rgba(255,255,255,0.85);}
+*{box-sizing:border-box;}
+body{font-family:'Quicksand',sans-serif;background-color:var(--soft-pink);color:var(--berry);scroll-behavior:smooth;margin:0;}
+h1,h2,h3,.logo{font-family:'Fredoka',sans-serif;}
+
+/* ── SECTION SYSTEM ── */
+.app-section{display:none;}
+.app-section.active{display:block;}
+
+/* ── PINCODE SCREEN ── */
+#section-pincode{position:fixed;inset:0;background:var(--soft-pink);z-index:100;
+  display:none;flex-direction:column;justify-content:center;align-items:center;}
+#section-pincode.active{display:flex;}
+
+/* ── MAIN LANDING ── */
+#section-landing{position:relative;z-index:10;}
+
+/* ── MAP OVERLAY ── */
+#map-container{position:fixed;inset:0;z-index:0;pointer-events:none;}
+#jmap-img{width:100%;height:100%;opacity:0.12;transition:opacity 0.5s ease;pointer-events:none;border:none;display:block;}
+.map-active #jmap-img{opacity:0.92;pointer-events:auto;}
+.map-hotspot{position:absolute;width:40px;height:40px;background:rgba(255,143,163,0.85);border:3px solid white;border-radius:50%;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 14px rgba(255,143,163,0.5);transition:transform 0.2s;pointer-events:auto;}
+.map-hotspot:hover{transform:scale(1.2);}
+.map-hotspot .hotspot-label{position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);background:white;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;color:var(--berry);box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+
+/* ── SHOP SIDEBAR ── */
+#shop-sidebar{position:fixed;left:-400px;top:0;width:380px;height:100%;background:var(--glass);backdrop-filter:blur(12px);z-index:50;transition:left 0.5s ease;box-shadow:10px 0 30px rgba(0,0,0,0.03);padding:20px;overflow-y:auto;}
+#shop-sidebar.visible{left:0;}
+#shop-sidebar-toggle{position:fixed;top:80px;left:20px;z-index:55;width:44px;height:44px;background:linear-gradient(135deg,#ff8fa3,#c2185b);color:white;border:none;border-radius:50%;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(255,143,163,0.4);transition:all 0.3s ease-in-out;}
+#shop-sidebar-toggle.show{display:flex;}
+#shop-sidebar-toggle:hover{transform:scale(1.1);}
+#shop-sidebar-toggle.collapsed{left:20px;}
+#shop-sidebar-toggle.expanded{left:400px;background:linear-gradient(135deg,#5d4037,#8d6e63);}
+.shop-thumb{width:70px;height:70px;border-radius:12px;background:#ffe3e8;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;}
+.glass-section{background:rgba(255,255,255,0.4);backdrop-filter:blur(5px);border-radius:40px;border:2px solid white;margin:40px auto;padding:60px 20px;}
+.nav-link{cursor:pointer;transition:color 0.3s;}
+.nav-link:hover{color:var(--deep-pink);}
+
+/* ── EQUITY BAR ── */
+#equity-bar{position:fixed;bottom:20px;right:20px;z-index:60;background:var(--glass);backdrop-filter:blur(12px);border:2px solid white;border-radius:24px;padding:14px 20px;box-shadow:0 8px 32px rgba(255,143,163,0.2);min-width:220px;display:none;flex-direction:column;gap:4px;}
+#equity-bar.show{display:flex;}
+.equity-progress-wrap{background:#ffe3e8;border-radius:20px;height:6px;margin-top:4px;overflow:hidden;}
+.equity-progress-fill{background:linear-gradient(90deg,#ff8fa3,#ff6b8a);height:100%;border-radius:20px;transition:width 0.6s ease;}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;bottom:100px;right:20px;z-index:300;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+.toast{background:white;border-left:4px solid #ff8fa3;border-radius:14px;padding:12px 18px;font-size:13px;font-weight:600;color:var(--berry);box-shadow:0 4px 20px rgba(255,143,163,0.2);animation:slideInToast 0.4s ease,fadeOutToast 0.5s ease 3.5s forwards;max-width:260px;}
+@keyframes slideInToast{from{transform:translateX(120%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes fadeOutToast{to{opacity:0;transform:translateX(120%);}}
+
+/* ── BADGES / TIERS ── */
+.ai-insight-badge{background:linear-gradient(135deg,#fff0f3,#ffe0e8);border:1px solid #ffcdd8;border-radius:10px;padding:6px 10px;font-size:11px;color:#c2185b;margin-top:8px;line-height:1.4;}
+.recommended-badge{background:linear-gradient(135deg,#ff8fa3,#ff6b8a);color:white;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block;margin-bottom:4px;}
+.tier-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;margin-bottom:6px;letter-spacing:0.5px;}
+.tier-bronze{background:linear-gradient(135deg,#ffd6b0,#f5a86a);color:#7a3800;}
+.tier-silver{background:linear-gradient(135deg,#e8e8f0,#b8b8d0);color:#333355;}
+.tier-gold{background:linear-gradient(135deg,#ffe08a,#ffc107);color:#5c3a00;}
+.tier-bar-fill{background:linear-gradient(90deg,#ff8fa3,#5d4037);height:100%;border-radius:20px;transition:width 0.7s cubic-bezier(.4,0,.2,1);}
+#loading-shops{text-align:center;padding:20px;color:#aaa;font-size:13px;display:none;}
+.shop-online-btn{margin-top:6px;background:linear-gradient(135deg,#fff0f3,#ffe3e8);color:#c2185b;border:1.5px solid #ffcdd8;border-radius:12px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:background 0.2s,transform 0.15s;font-family:'Quicksand',sans-serif;}
+.shop-online-btn:hover{background:#ffd6df;transform:scale(1.04);}
+
+/* ── PRODUCT DRAWER ── */
+#product-drawer-overlay{position:fixed;inset:0;z-index:79;background:rgba(93,64,55,0.25);backdrop-filter:blur(4px);display:none;justify-content:center;align-items:center;}
+#product-drawer-overlay.open{display:flex;}
+#product-drawer{background:#fff5f7;border-radius:28px;border:2px solid white;box-shadow:0 20px 60px rgba(255,143,163,0.25);width:360px;max-width:94vw;max-height:88vh;overflow-y:auto;padding:0 0 24px;transform:scale(0.92);opacity:0;transition:transform 0.35s cubic-bezier(.4,0,.2,1),opacity 0.35s ease;}
+#product-drawer-overlay.open #product-drawer{transform:scale(1);opacity:1;}
+.drawer-header{background:white;border-radius:26px 26px 0 0;padding:18px 20px 14px;border-bottom:1.5px solid #ffe3e8;display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;z-index:2;}
+.drawer-close{width:30px;height:30px;border-radius:50%;background:#fff0f3;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:#ff8fa3;transition:background 0.2s;flex-shrink:0;}
+.drawer-close:hover{background:#ffe3e8;}
+.product-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 16px 0;}
+.product-card{background:white;border:1.5px solid #ffe3e8;border-radius:20px;padding:16px 12px 14px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;transition:box-shadow 0.2s,transform 0.2s;}
+.product-card:hover{box-shadow:0 4px 20px rgba(255,143,163,0.18);transform:translateY(-2px);}
+.product-emoji{font-size:38px;width:64px;height:64px;background:linear-gradient(135deg,#fff0f3,#ffe3e8);border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
+.product-buy-btn{width:100%;background:linear-gradient(135deg,#ff8fa3,#ff6b8a);color:white;border:none;border-radius:12px;padding:8px 0;font-size:12px;font-weight:700;cursor:pointer;font-family:'Quicksand',sans-serif;transition:opacity 0.2s,transform 0.15s;margin-top:4px;}
+.product-buy-btn:hover{opacity:0.88;transform:scale(1.03);}
+
+/* ── CART ── */
+#cart-section{margin:14px 16px 0;border-radius:20px;overflow:hidden;border:1.5px solid #ffe3e8;background:white;}
+#cart-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;background:white;user-select:none;transition:background 0.2s;}
+#cart-header:hover{background:#fff8f9;}
+#cart-header-left{display:flex;align-items:center;gap:8px;}
+#cart-count-badge{background:linear-gradient(135deg,#ff8fa3,#ff6b8a);color:white;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;min-width:20px;text-align:center;transition:transform 0.2s;}
+#cart-count-badge.bump{transform:scale(1.4);}
+#cart-chevron{font-size:12px;color:#ff8fa3;transition:transform 0.3s cubic-bezier(.4,0,.2,1);}
+#cart-chevron.open{transform:rotate(180deg);}
+#cart-body{max-height:0;overflow:hidden;transition:max-height 0.4s cubic-bezier(.4,0,.2,1),padding 0.3s ease;padding:0 12px;}
+#cart-body.open{max-height:400px;padding:4px 12px 12px;}
+.cart-item{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:6px;background:#fff5f7;border:1px solid #ffe3e8;border-radius:14px;animation:cartItemIn 0.25s cubic-bezier(.4,0,.2,1);}
+@keyframes cartItemIn{from{opacity:0;transform:translateX(-10px);}to{opacity:1;transform:translateX(0);}}
+.cart-item-emoji{font-size:20px;flex-shrink:0;}
+.cart-item-info{flex:1;}
+.cart-item-name{font-size:12px;font-weight:700;color:var(--berry);}
+.cart-item-price{font-size:11px;font-weight:800;color:#ff8fa3;}
+.cart-remove-btn{background:none;border:none;cursor:pointer;font-size:14px;color:#ffb3c1;padding:2px 6px;border-radius:8px;transition:background 0.15s,color 0.15s;font-family:'Quicksand',sans-serif;}
+.cart-remove-btn:hover{background:#fff0f3;color:#ff6b8a;}
+#cart-footer{border-top:1.5px solid #ffe3e8;padding:10px 12px 0;display:none;flex-direction:column;gap:6px;}
+#cart-footer.visible{display:flex;}
+#cart-total-row{display:flex;justify-content:space-between;align-items:center;}
+#cart-total-label{font-size:11px;color:#aaa;font-weight:600;}
+#cart-total-value{font-size:14px;font-weight:800;color:var(--berry);}
+#checkout-btn{width:100%;padding:12px 0;background:linear-gradient(135deg,#ff8fa3,#c2185b);color:white;border:none;border-radius:14px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Quicksand',sans-serif;transition:opacity 0.2s,transform 0.15s;letter-spacing:0.3px;}
+#checkout-btn:hover{opacity:0.9;transform:scale(1.02);}
+@keyframes shake{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-6px);}40%,80%{transform:translateX(6px);}}
+.shake{animation:shake 0.4s ease;}
+
+/* ── AI BUBBLE ── */
+#ai-bubble{position:fixed;bottom:24px;left:24px;z-index:70;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ff8fa3,#c2185b);display:none;align-items:center;justify-content:center;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(255,143,163,0.45);transition:transform 0.2s;}
+#ai-bubble:hover{transform:scale(1.1);}
+#ai-bubble.show{display:flex;}
+#ai-chat-panel{position:fixed;bottom:90px;left:24px;z-index:70;width:280px;background:white;border:2px solid #ffe3e8;border-radius:24px;padding:18px;box-shadow:0 8px 32px rgba(255,143,163,0.18);display:none;flex-direction:column;gap:10px;}
+#ai-chat-panel.open{display:flex;}
+.chat-msg{background:linear-gradient(135deg,#fff0f3,#ffe3e8);border-radius:16px 16px 16px 4px;padding:10px 14px;font-size:12px;line-height:1.5;color:var(--berry);}
+.chat-close{align-self:flex-end;font-size:10px;color:#bbb;cursor:pointer;text-decoration:underline;}
+
+/* ── HEART BURST ── */
+.heart-burst{position:fixed;pointer-events:none;z-index:999;font-size:22px;animation:heartFly 1s ease forwards;}
+@keyframes heartFly{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-80px) scale(1.8);}}
+
+/* ── ANIMATIONS ── */
+/* Button hover animations */
+button{transition:all 0.3s ease-in-out;}
+button:hover{transform:translateY(-2px);}
+
+/* Icon animations */
+.map-hotspot,
+[class*="icon"],
+[style*="emoji"],
+.shop-thumb{transition:transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;}
+
+/* Form entrance animations */
+.app-section.active,
+.fs-page.active,
+#product-drawer-overlay.open{animation:fadeEnter 0.35s ease-in-out;}
+
+@keyframes fadeEnter{
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Logo floating animation */
+.logo{animation:floatLogo 3s ease-in-out infinite;}
+
+@keyframes floatLogo {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* ── SHARED CARD / SECTION STYLES ── */
+.fs-page{position:fixed;inset:0;z-index:105;background:var(--soft-pink);overflow-y:auto;display:none;}
+.fs-page.active{display:block;}
+.fs-nav{background:white;border-bottom:1.5px solid #ffe3e8;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.fs-logo{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:var(--berry);}
+.fs-logo span{color:#ff8fa3;}
+.fs-card{background:white;border-radius:20px;border:1.5px solid #ffe3e8;margin:14px 16px 0;overflow:hidden;}
+.fs-card-title{padding:14px 18px 10px;font-size:13px;font-weight:800;color:var(--berry);border-bottom:1px solid #fff0f3;}
+.fs-card-body{padding:14px 18px;}
+.stat-card{background:linear-gradient(135deg,#fff0f3,#ffe3e8);border-radius:16px;padding:12px 16px;margin-bottom:10px;}
+.stat-label{font-size:10px;color:#c2185b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.stat-value{font-size:22px;font-weight:800;color:var(--berry);margin-top:2px;}
+.stat-sub{font-size:11px;color:#aaa;margin-top:2px;}
+.holding-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #fff5f7;}
+.holding-row:last-child{border-bottom:none;}
+.holding-bar-wrap{flex:1;background:#ffe3e8;border-radius:20px;height:6px;overflow:hidden;margin:0 8px;}
+.holding-bar-fill{background:linear-gradient(90deg,#ff8fa3,#5d4037);height:100%;border-radius:20px;}
+.mkt-trend-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #fff5f7;font-size:12px;}
+.mkt-trend-row:last-child{border-bottom:none;}
+.mkt-up{color:#4caf50;font-weight:800;}
+.mkt-down{color:#e57373;font-weight:800;}
+.sell-order-row{background:#fff5f7;border:1px solid #ffe3e8;border-radius:14px;padding:10px 12px;margin-bottom:8px;}
+.ledger-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #fff5f7;font-size:12px;}
+.ledger-row:last-child{border-bottom:none;}
+.pill-action-btn{background:linear-gradient(135deg,#ff8fa3,#c2185b);color:white;border:none;border-radius:12px;padding:7px 16px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Quicksand',sans-serif;transition:opacity 0.2s;}
+.pill-action-btn:hover{opacity:0.88;}
+.logout-btn{background:transparent;color:#c2185b;border:1.5px solid #ffcdd8;border-radius:20px;padding:7px 18px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Quicksand',sans-serif;transition:background 0.2s;}
+.logout-btn:hover{background:#fff0f3;}
+
+/* ── PORTFOLIO TABS ── */
+.tab-bar{display:flex;background:#ffe3e8;border-radius:16px;padding:3px;margin:14px 16px 0;}
+.tab-btn{flex:1;text-align:center;padding:7px 0;border-radius:13px;border:none;font-size:11px;font-weight:800;cursor:pointer;background:transparent;color:#c2185b;font-family:'Quicksand',sans-serif;transition:all 0.2s;}
+.tab-btn.active{background:white;color:var(--berry);box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── MERCHANT STATS ── */
+.merch-stat-row{display:flex;gap:8px;margin-bottom:8px;}
+.merch-stat-box{flex:1;background:linear-gradient(135deg,#fff0f3,#ffe3e8);border-radius:14px;padding:10px 12px;text-align:center;}
+.merch-stat-num{font-size:20px;font-weight:800;color:var(--berry);}
+.merch-stat-lbl{font-size:10px;color:#c2185b;font-weight:700;}
+.review-card{background:#fff5f7;border:1px solid #ffe3e8;border-radius:14px;padding:10px 14px;margin-bottom:8px;font-size:12px;}
+.review-author{font-weight:800;color:var(--berry);margin-bottom:3px;}
+.review-text{color:#888;line-height:1.5;}
+.stake-table{width:100%;border-collapse:collapse;font-size:12px;}
+.stake-table th{text-align:left;font-size:10px;font-weight:800;color:#c2185b;text-transform:uppercase;letter-spacing:.4px;padding:6px 8px;border-bottom:1.5px solid #ffe3e8;}
+.stake-table td{padding:8px;border-bottom:1px solid #fff5f7;color:var(--berry);font-weight:600;}
+.stake-table tr:last-child td{border-bottom:none;}
+
+/* ── PARTNER FORM MODAL ── */
+#partner-overlay{position:fixed;inset:0;background:rgba(93,64,55,0.35);backdrop-filter:blur(8px);z-index:110;display:none;justify-content:center;align-items:center;}
+#partner-overlay.open{display:flex;}
+#partner-modal{background:var(--soft-pink);border-radius:32px;border:2px solid white;box-shadow:0 24px 80px rgba(255,143,163,0.25);width:440px;max-width:96vw;max-height:90vh;overflow-y:auto;padding:0 0 28px;transform:scale(0.92);opacity:0;transition:transform 0.35s cubic-bezier(.4,0,.2,1),opacity 0.35s ease;}
+#partner-overlay.open #partner-modal{transform:scale(1);opacity:1;}
+/* ── MERCHANT LOGIN MODAL ── */
+#login-overlay{position:fixed;inset:0;background:rgba(93,64,55,0.35);backdrop-filter:blur(8px);z-index:115;display:none;justify-content:center;align-items:center;}
+#login-overlay.open{display:flex;}
+#login-modal{background:var(--soft-pink);border-radius:32px;border:2px solid white;box-shadow:0 24px 80px rgba(255,143,163,0.25);width:400px;max-width:96vw;padding:0 0 28px;transform:scale(0.92);opacity:0;transition:transform 0.35s cubic-bezier(.4,0,.2,1),opacity 0.35s ease;}
+#login-overlay.open #login-modal{transform:scale(1);opacity:1;}
+.form-field{margin-bottom:12px;}
+.form-field label{display:block;font-size:11px;font-weight:800;color:var(--berry);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+.form-field input,.form-field select,.form-field textarea{width:100%;border:1.5px solid #ffe3e8;border-radius:14px;padding:10px 14px;font-size:13px;font-family:'Quicksand',sans-serif;outline:none;background:white;color:var(--berry);transition:border-color 0.2s;}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:#ff8fa3;}
+.gstin-note{font-size:10px;color:#aaa;margin-top:4px;}
+
+/* ── GSTIN SPINNER ── */
+#gstin-spinner{position:fixed;inset:0;z-index:120;background:rgba(255,245,247,0.97);display:none;flex-direction:column;justify-content:center;align-items:center;gap:20px;}
+#gstin-spinner.show{display:flex;}
+.spinner-ring{width:56px;height:56px;border:5px solid #ffe3e8;border-top-color:#ff8fa3;border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ══════════════════════════════════════════════════
+   MODULE 1 — OTP AUTH MODAL
+══════════════════════════════════════════════════ */
+#otp-overlay{
+  position:fixed;inset:0;background:rgba(93,64,55,0.4);
+  backdrop-filter:blur(10px);z-index:200;
+  display:none;justify-content:center;align-items:center;
+}
+#otp-overlay.open{display:flex;}
+#otp-modal{
+  background:var(--soft-pink);border-radius:32px;
+  border:2px solid white;
+  box-shadow:0 24px 80px rgba(255,143,163,0.3);
+  width:380px;max-width:94vw;
+  padding:0 0 28px;
+  transform:scale(0.9);opacity:0;
+  transition:transform 0.35s cubic-bezier(.4,0,.2,1),opacity 0.35s ease;
+}
+#otp-overlay.open #otp-modal{transform:scale(1);opacity:1;}
+
+.otp-modal-header{
+  background:white;border-radius:30px 30px 0 0;
+  padding:20px 24px 16px;
+  border-bottom:1.5px solid #ffe3e8;
+  display:flex;justify-content:space-between;align-items:flex-start;
+  position:sticky;top:0;z-index:2;
+}
+.otp-modal-body{padding:24px 24px 0;}
+
+.otp-input{
+  width:100%;border:1.5px solid #ffe3e8;border-radius:14px;
+  padding:12px 16px;font-size:15px;font-family:'Quicksand',sans-serif;
+  outline:none;background:white;color:var(--berry);
+  transition:border-color 0.2s;text-align:center;letter-spacing:2px;
+}
+.otp-input:focus{border-color:#ff8fa3;}
+
+.otp-primary-btn{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,#ff8fa3,#c2185b);
+  color:white;border:none;border-radius:16px;
+  font-size:14px;font-weight:800;cursor:pointer;
+  font-family:'Quicksand',sans-serif;margin-top:10px;
+  transition:opacity 0.2s,transform 0.15s;
+}
+.otp-primary-btn:hover{opacity:0.9;transform:scale(1.01);}
+.otp-primary-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+.otp-step{transition:opacity 0.25s ease,max-height 0.3s ease;}
+#otp-step-verify{display:none;margin-top:14px;}
+#otp-step-verify.show{display:block;}
+
+/* ══════════════════════════════════════════════════
+   MODULE 2 — OFFLINE VERIFIER CARD (inside Merchant Suite)
+══════════════════════════════════════════════════ */
+.offline-verifier-card{
+  background:white;border-radius:20px;
+  border:1.5px solid #ffe3e8;
+  margin:14px 16px 0;overflow:hidden;
+}
+.offline-input{
+  width:100%;border:1.5px solid #ffe3e8;border-radius:12px;
+  padding:10px 14px;font-size:13px;font-family:'Quicksand',sans-serif;
+  outline:none;background:#fff9fb;color:var(--berry);
+  transition:border-color 0.2s;margin-bottom:10px;
+}
+.offline-input:focus{border-color:#ff8fa3;}
+
+.confirm-mint-btn{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,#ff8fa3,#c2185b);
+  color:white;border:none;border-radius:14px;
+  font-size:13px;font-weight:800;cursor:pointer;
+  font-family:'Quicksand',sans-serif;
+  transition:opacity 0.2s,transform 0.15s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.confirm-mint-btn:hover{opacity:0.9;transform:scale(1.01);}
+.confirm-mint-btn:disabled{opacity:0.55;cursor:not-allowed;transform:none;}
+
+.mini-spinner{
+  width:16px;height:16px;border:2.5px solid rgba(255,255,255,0.4);
+  border-top-color:white;border-radius:50%;
+  animation:spin 0.7s linear infinite;display:none;
+}
+.mini-spinner.show{display:inline-block;}
+</style>
+</head>
+<body class="antialiased">
+
+<!-- ══════════════════════════════════════════════════
+     GLOBAL OVERLAYS (always in DOM)
+══════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+<div id="map-container">
+  <iframe id="jmap-img" src="https://www.openstreetmap.org/export/embed.html?bbox=88.3550%2C22.5050%2C88.3750%2C22.5250&layer=mapnik" allowfullscreen loading="lazy"></iframe>
+  <div id="hotspot-layer"></div>
+</div>
+<button id="shop-sidebar-toggle" onclick="toggleSidebar()" title="Toggle shops">📍</button>
+<div id="equity-bar">
+  <div style="font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Your Equity Portfolio</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+    <span style="font-size:12px;font-weight:700;">Total Spent</span>
+    <span style="font-size:12px;font-weight:800;color:#ff8fa3;" id="eq-total-spend">₹0</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:12px;font-weight:700;">Equity Earned</span>
+    <span style="font-size:12px;font-weight:800;color:#4caf50;" id="eq-total-equity">₹0</span>
+  </div>
+  <div class="equity-progress-wrap"><div class="equity-progress-fill" id="eq-progress" style="width:0%"></div></div>
+  <div style="font-size:10px;color:#aaa;margin-top:2px;" id="eq-ownership-text">Own 0% of your local area</div>
+</div>
+<div id="ai-bubble" onclick="toggleAIChat()">🤖</div>
+<div id="ai-chat-panel">
+  <div class="chat-msg" id="ai-chat-msg">Hey! Explore shops nearby to earn equity tokens! 💖</div>
+  <span class="chat-close" onclick="toggleAIChat()">Dismiss</span>
+</div>
+<div id="shop-sidebar">
+  <button onclick="hideShops()" style="color:#ff8fa3;font-weight:800;font-size:13px;background:none;border:none;cursor:pointer;margin-bottom:16px;">← Back</button>
+  <h3 style="font-size:20px;font-weight:700;margin-bottom:4px;" id="sidebar-title">Shops Near You</h3>
+  <p style="font-size:11px;color:#aaa;margin-bottom:12px;">📍 <span id="sidebar-pincode">—</span></p>
+  <div id="loading-shops">🔍 Loading shops near you…</div>
+  <div id="shop-list"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PRODUCT DRAWER
+══════════════════════════════════════════════════ -->
+<div id="product-drawer-overlay" onclick="handleOverlayClick(event)">
+  <div id="product-drawer">
+    <div class="drawer-header">
+      <div>
+        <h3 style="font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:#5d4037;" id="drawer-shop-name">Shop</h3>
+        <p style="font-size:11px;color:#ff8fa3;font-weight:600;margin-top:2px;">Shop online & earn equity 🧡</p>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="product-grid" id="drawer-products"></div>
+    <div id="cart-section">
+      <div id="cart-header" onclick="toggleCartBody()">
+        <div id="cart-header-left">
+          <span style="font-size:13px;font-weight:800;color:var(--berry);">🛒 Cart</span>
+          <span id="cart-count-badge">0</span>
+        </div>
+        <span id="cart-chevron">▼</span>
+      </div>
+      <div id="cart-body">
+        <div id="cart-items-list"><div style="text-align:center;padding:14px 0 6px;font-size:12px;color:#ccc;">Your cart is empty 🌸</div></div>
+        <div id="cart-footer">
+          <div id="cart-total-row">
+            <span id="cart-total-label" style="font-size:11px;color:#aaa;font-weight:600;">Cart Total</span>
+            <span id="cart-total-value" style="font-size:14px;font-weight:800;color:var(--berry);">₹0</span>
+          </div>
+          <button id="checkout-btn" onclick="checkoutCart()">Checkout & Earn Equity 💖</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MERCHANT LOGIN MODAL
+══════════════════════════════════════════════════ -->
+<div id="login-overlay" onclick="handleLoginOverlayClick(event)">
+  <div id="login-modal">
+    <div style="background:white;border-radius:30px 30px 0 0;padding:20px 24px 16px;border-bottom:1.5px solid #ffe3e8;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:#5d4037;">Merchant Login 🔑</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;">Access your OwnLocal dashboard</div>
+      </div>
+      <button onclick="closeLoginModal()" style="width:32px;height:32px;border-radius:50%;background:#fff0f3;border:none;cursor:pointer;font-size:17px;color:#ff8fa3;">✕</button>
+    </div>
+    <div style="padding:20px;">
+      <div class="form-field">
+        <label>Shop Name *</label>
+        <input type="text" id="ml-shopname" placeholder="e.g. Rosé Bakery" style="width:100%;padding:12px 14px;border-radius:14px;border:1.5px solid #ffe3e8;background:white;font-size:13px;font-family:'Quicksand',sans-serif;outline:none;box-sizing:border-box;">
+      </div>
+      <div class="form-field">
+        <label>Password *</label>
+        <input type="password" id="ml-password" placeholder="Your dashboard password" style="width:100%;padding:12px 14px;border-radius:14px;border:1.5px solid #ffe3e8;background:white;font-size:13px;font-family:'Quicksand',sans-serif;outline:none;box-sizing:border-box;">
+      </div>
+      <div id="login-error" style="display:none;background:#fff0f3;border:1px solid #ffcdd8;border-radius:10px;padding:10px 14px;font-size:12px;color:#c2185b;font-weight:700;margin-bottom:12px;"></div>
+      <button onclick="submitMerchantLogin()" style="width:100%;padding:14px;background:linear-gradient(135deg,#ff8fa3,#c2185b);color:white;border:none;border-radius:16px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Quicksand',sans-serif;margin-top:4px;">
+        Login to Dashboard 🚀
+      </button>
+      <p style="text-align:center;font-size:11px;color:#aaa;margin-top:14px;">Don't have an account? <span onclick="closeLoginModal();openPartnerForm();" style="color:#ff8fa3;font-weight:700;cursor:pointer;text-decoration:underline;">Register here</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PARTNER FORM MODAL
+══════════════════════════════════════════════════ -->
+<div id="partner-overlay" onclick="handlePartnerOverlayClick(event)">
+  <div id="partner-modal">
+    <div style="background:white;border-radius:30px 30px 0 0;padding:20px 24px 16px;border-bottom:1.5px solid #ffe3e8;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2;">
+      <div>
+        <div style="font-family:'Fredoka',sans-serif;font-size:20px;font-weight:700;color:#5d4037;">Partner With Us 🏪</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;">Join the OwnLocal merchant ecosystem</div>
+      </div>
+      <button onclick="closePartnerForm()" style="width:32px;height:32px;border-radius:50%;background:#fff0f3;border:none;cursor:pointer;font-size:17px;color:#ff8fa3;">✕</button>
+    </div>
+    <div style="padding:20px;">
+      <div class="form-field">
+        <label>Shop Name *</label>
+        <input type="text" id="pf-name" placeholder="e.g. Rosé Bakery">
+      </div>
+      <div class="form-field">
+        <label>Create Password *</label>
+        <input type="password" id="pf-password" placeholder="Choose a password for your dashboard">
+      </div>
+      <div class="form-field">
+        <label>Category</label>
+        <select id="pf-category">
+          <option>Café & Chai</option><option>Bakery</option><option>Restaurant</option>
+          <option>Grocery</option><option>Fashion</option><option>Bookstore</option>
+          <option>Pharmacy</option><option>Electronics</option><option>Jewelry</option>
+          <option>Art & Crafts</option><option>Gift Shop</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Pincode *</label>
+        <input type="text" id="pf-pin" placeholder="700019" maxlength="6">
+      </div>
+      <div class="form-field">
+        <label>GSTIN Number *</label>
+        <input type="text" id="pf-gstin" placeholder="e.g. 19AADCB2230M1ZP" maxlength="15" style="letter-spacing:1px;text-transform:uppercase;">
+        <div class="gstin-note">15-character GST Identification Number — required for verification</div>
+      </div>
+      <div class="form-field">
+        <label>Owner Email</label>
+        <input type="email" id="pf-email" placeholder="you@example.com">
+      </div>
+      <div class="form-field">
+        <label>Monthly Footfall (approx.)</label>
+        <input type="number" id="pf-footfall" placeholder="500">
+      </div>
+      <button onclick="submitPartnerForm()" style="width:100%;padding:14px;background:linear-gradient(135deg,#ff8fa3,#c2185b);color:white;border:none;border-radius:16px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Quicksand',sans-serif;margin-top:4px;">
+        Verify GSTIN & Open Dashboard 🚀
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     GSTIN SPINNER
+══════════════════════════════════════════════════ -->
+<div id="gstin-spinner">
+  <div class="spinner-ring"></div>
+  <div style="font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:#5d4037;">Validating GSTIN with Govt Portals…</div>
+  <div style="font-size:13px;color:#aaa;">This will only take a moment ✨</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODULE 1 — OTP AUTH MODAL
+══════════════════════════════════════════════════ -->
+<div id="otp-overlay" onclick="handleOtpOverlayClick(event)">
+  <div id="otp-modal">
+    <div class="otp-modal-header">
+      <div>
+        <div style="font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:#5d4037;">Create Your Account ✨</div>
+        <div style="font-size:11px;color:#aaa;margin-top:3px;">Secure OTP verification · 30 seconds</div>
+      </div>
+      <button onclick="closeOtpModal()" style="width:32px;height:32px;border-radius:50%;background:#fff0f3;border:none;cursor:pointer;font-size:17px;color:#ff8fa3;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div class="otp-modal-body">
+      <!-- Step 1: Phone input -->
+      <div id="otp-step-phone">
+        <div style="font-size:13px;font-weight:700;color:var(--berry);margin-bottom:8px;">📱 Enter your phone number</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+          <span style="background:#fff0f3;border:1.5px solid #ffe3e8;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:800;color:#c2185b;white-space:nowrap;">+91</span>
+          <input type="tel" id="otp-phone-input" class="otp-input" placeholder="10-digit number" maxlength="10" inputmode="numeric" pattern="[0-9]*"
+            onkeydown="if(event.key==='Enter')sendOtp()">
+        </div>
+        <div style="font-size:10px;color:#aaa;margin-bottom:6px;">We'll send a 4-digit code to verify your number.</div>
+        <button class="otp-primary-btn" onclick="sendOtp()">Send OTP 🔐</button>
+      </div>
+
+      <!-- Step 2: OTP verification (hidden until OTP is "sent") -->
+      <div id="otp-step-verify">
+        <div style="font-size:13px;font-weight:700;color:var(--berry);margin-bottom:8px;">🔑 Enter the 4-digit OTP</div>
+        <div style="background:linear-gradient(135deg,#fff0f3,#ffe3e8);border-radius:12px;padding:10px 14px;font-size:12px;color:#c2185b;font-weight:600;margin-bottom:10px;" id="otp-sent-label">
+          OTP sent to +91 XXXXXXXXXX
+        </div>
+        <input type="tel" id="otp-code-input" class="otp-input" placeholder="_ _ _ _" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+          style="font-size:28px;letter-spacing:12px;font-weight:800;"
+          onkeydown="if(event.key==='Enter')verifyOtp()">
+        <button class="otp-primary-btn" onclick="verifyOtp()">Verify & Sign In 🔒</button>
+        <div style="text-align:center;margin-top:10px;">
+          <span style="font-size:11px;color:#aaa;">Didn't receive it? </span>
+          <span onclick="resendOtp()" style="font-size:11px;color:#ff8fa3;font-weight:700;cursor:pointer;text-decoration:underline;">Resend OTP</span>
+        </div>
+      </div>
+    </div>
+    <div style="height:4px;"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SECTION 1 — PINCODE ENTRY
+══════════════════════════════════════════════════ -->
+<div id="section-pincode" class="app-section">
+  <div class="logo" style="font-size:2.5rem;margin-bottom:24px;">Own<span style="color:#ff8fa3;">Local</span></div>
+  <p style="font-weight:600;margin-bottom:24px;">Enter your pincode to start owning</p>
+  <input type="text" id="pin-input" style="background:white;border:2px solid #ffe3e8;padding:16px 20px;border-radius:18px;text-align:center;font-size:1.5rem;width:190px;margin-bottom:20px;outline:none;font-family:'Quicksand',sans-serif;color:var(--berry);" placeholder="700019" maxlength="6" onkeydown="if(event.key==='Enter')unlockApp()">
+  <button onclick="unlockApp()" style="background:linear-gradient(135deg,#ff8fa3,#c2185b);color:white;padding:14px 40px;border-radius:18px;font-weight:800;font-size:15px;border:none;cursor:pointer;font-family:'Quicksand',sans-serif;box-shadow:0 6px 20px rgba(255,143,163,0.4);">Enter ✨</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SECTION 2 — MAIN LANDING (Hero + Nav)
+══════════════════════════════════════════════════ -->
+<div id="section-landing" class="app-section">
+  <!-- NAV -->
+  <nav style="display:flex;align-items:center;justify-content:space-between;padding:20px 32px;position:sticky;top:0;background:rgba(255,245,247,0.85);backdrop-filter:blur(12px);z-index:40;border-bottom:1px solid rgba(255,227,232,0.6);">
+    <div class="logo" style="font-size:1.5rem;font-weight:800;">Own<span style="color:#ff8fa3;">Local</span></div>
+    <div style="display:flex;gap:32px;font-size:13px;font-weight:700;color:#888;">
+      <a href="#how-it-works" class="nav-link">How it Works</a>
+      <a href="#merchants" class="nav-link">For Merchants</a>
+      <span onclick="showShops()" class="nav-link" style="color:#ff8fa3;">Explore Shops ✨</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <!-- Location pill -->
+      <div id="nav-location-wrap" style="display:none;align-items:center;gap:8px;">
+        <span id="nav-location" style="font-size:11px;font-weight:700;color:#ff8fa3;background:#fff0f3;padding:4px 12px;border-radius:20px;border:1px solid #ffcdd8;"></span>
+        <button onclick="changeLocation()" style="font-size:11px;font-weight:700;color:#aaa;background:none;border:none;cursor:pointer;text-decoration:underline;">Change</button>
+      </div>
+      <!-- STEP 1: Join Waitlist (shown before sign-up) -->
+      <button id="btn-join-waitlist" onclick="handleJoinWaitlist()"
+        style="background:linear-gradient(135deg,#ff8fa3,#c2185b);color:white;padding:9px 22px;border-radius:20px;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:'Quicksand',sans-serif;transition:opacity 0.2s;">
+        Join the Waitlist
+      </button>
+      <!-- STEP 2: Create Account (shown after waitlist, before signup) -->
+      <button id="btn-create-account" onclick="handleUserSignUp()"
+        style="display:none;background:linear-gradient(135deg,#5d4037,#8d6e63);color:white;padding:9px 22px;border-radius:20px;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:'Quicksand',sans-serif;transition:opacity 0.2s;">
+        Sign Up to Own ✨
+      </button>
+      <!-- STEP 3: My Account (shown only after isUserLoggedIn = true) -->
+      <button id="btn-my-account"
+        style="display:none;background:var(--berry);color:white;padding:9px 22px;border-radius:20px;font-size:13px;font-weight:800;border:none;cursor:pointer;font-family:'Quicksand',sans-serif;transition:opacity 0.2s;">
+        My Account
+      </button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section style="max-width:900px;margin:0 auto;padding:80px 32px 60px;text-align:center;">
+    <h1 style="font-size:clamp(3rem,8vw,5.5rem);font-weight:800;line-height:1.1;color:var(--berry);margin-bottom:20px;">
+      Own the Street<br><span style="color:#ff8fa3;">You Walk On</span>
+    </h1>
+    <p style="font-size:1.15rem;color:#888;max-width:480px;margin:0 auto 36px;">Your daily chai and shopping now builds your long-term wealth.</p>
+    <button onclick="showShops()" style="background:linear-gradient(135deg,#ff8fa3,#c2185b);color:white;padding:18px 48px;border-radius:24px;font-weight:800;font-size:1.1rem;border:none;cursor:pointer;font-family:'Quicksand',sans-serif;box-shadow:0 8px 28px rgba(255,143,163,0.4);transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">View Live Map</button>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" style="max-width:960px;margin:0 auto;padding:20px 24px 60px;">
+    <div class="glass-section" style="text-align:center;">
+      <h2 style="font-size:2.2rem;font-weight:700;margin-bottom:48px;">The Ownership Loop 🌸</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:40px;">
+        <div><div style="width:64px;height:64px;background:#ffe3e8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 16px;">🔗</div><h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px;">Connect Bank</h3><p style="color:#aaa;font-size:13px;">Link your account once. We only track verified merchant spends.</p></div>
+        <div><div style="width:64px;height:64px;background:#ffe3e8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 16px;">👟</div><h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px;">Shop Local</h3><p style="color:#aaa;font-size:13px;">Buy your regular essentials. No receipts or scanning needed.</p></div>
+        <div><div style="width:64px;height:64px;background:#ffe3e8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 16px;">💰</div><h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px;">Earn Equity</h3><p style="color:#aaa;font-size:13px;">Automatically earn tokens as rewards. After 10,000 tokens, claim a tiny sentimental share of the shop.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOR MERCHANTS -->
+  <section id="merchants" style="max-width:960px;margin:0 auto;padding:0 24px 80px;">
+    <div style="background:var(--berry);color:white;border-radius:48px;padding:60px 48px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(93,64,55,0.2);">
+      <h2 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:700;margin-bottom:16px;">For Merchants 🏪</h2>
+      <p style="color:rgba(255,200,210,0.9);font-size:1rem;margin-bottom:32px;max-width:480px;">Build the ultimate loyalty. Let your customers own a piece of your shop and grow with you.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <button onclick="openPartnerForm()" style="background:linear-gradient(135deg,#ff8fa3,#c2185b);color:white;padding:14px 36px;border-radius:18px;font-weight:800;font-size:14px;border:none;cursor:pointer;font-family:'Quicksand',sans-serif;">Partner With Us</button>
+        <button onclick="openLoginModal()" style="background:transparent;color:white;padding:14px 36px;border-radius:18px;font-weight:800;font-size:14px;border:2px solid rgba(255,255,255,0.4);cursor:pointer;font-family:'Quicksand',sans-serif;">Merchant Login 🔑</button>
+      </div>
+    </div>
+  </section>
+
+  <footer style="text-align:center;padding:40px 20px;color:#bbb;font-size:12px;">© 2026 OwnLocal Fintech · Built with love for Kolkata 💖</footer>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SECTION 3 — USER PORTFOLIO (full-screen page)
+══════════════════════════════════════════════════ -->
+<div id="section-portfolio" class="fs-page">
+  <div class="fs-nav">
+    <div class="fs-logo">Own<span>Local</span> · Wealth Wallet 💼</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="pv-location-pill" style="font-size:11px;font-weight:700;color:#ff8fa3;background:#fff0f3;padding:4px 12px;border-radius:20px;border:1px solid #ffcdd8;"></span>
+      <button onclick="closePortfolio()" style="width:32px;height:32px;border-radius:50%;background:#fff0f3;border:none;cursor:pointer;font-size:16px;color:#ff8fa3;">✕</button>
+      <button class="logout-btn" onclick="handleLogout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Summary stats -->
+  <div style="display:flex;gap:12px;margin:14px 16px 0;flex-wrap:wrap;">
+    <div class="stat-card" style="flex:1;min-width:130px;">
+      <div class="stat-label">Equity Value</div>
+      <div class="stat-value" id="pv-total-eq">₹0</div>
+      <div class="stat-sub">Across all Kolkata shops</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:130px;">
+      <div class="stat-label">Total Tokens</div>
+      <div class="stat-value" id="pv-total-tokens">0</div>
+      <div class="stat-sub">Active holdings</div>
+    </div>
+  </div>
+
+  <!-- Top Holdings -->
+  <div class="fs-card">
+    <div class="fs-card-title">🏆 Your Holdings (by % Owned)</div>
+    <div class="fs-card-body" id="pv-holdings" style="padding-top:6px;padding-bottom:6px;">
+      <div style="font-size:12px;color:#ccc;text-align:center;padding:12px 0;">Shop locally to build your portfolio 🌸</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="ptab-btn-market" onclick="switchPortfolioTab('market',this)">🪙 Token Market</button>
+    <button class="tab-btn" id="ptab-btn-trends" onclick="switchPortfolioTab('trends',this)">📈 Trends</button>
+    <button class="tab-btn" id="ptab-btn-ledger" onclick="switchPortfolioTab('ledger',this)">🧾 Activity</button>
+  </div>
+
+  <!-- Token Market panel -->
+  <div id="ptab-market" class="tab-panel active">
+    <div class="fs-card">
+      <div class="fs-card-title">🛒 Your Equity Mints — List for Sale</div>
+      <div class="fs-card-body" id="pv-sell-orders">
+        <div style="font-size:12px;color:#ccc;text-align:center;padding:12px 0;">No tokens to list yet. Shop locally to earn! 🌸</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trends panel -->
+  <div id="ptab-trends" class="tab-panel">
+    <div class="fs-card">
+      <div class="fs-card-title">📈 Market Trends</div>
+      <div class="fs-card-body" id="pv-trends"></div>
+    </div>
+  </div>
+
+  <!-- Activity Ledger panel -->
+  <div id="ptab-ledger" class="tab-panel">
+    <div class="fs-card">
+      <div class="fs-card-title">🧾 Activity Ledger</div>
+      <div class="fs-card-body" id="pv-ledger">
+        <div style="font-size:12px;color:#ccc;text-align:center;padding:12px 0;">No transactions yet. Make your first purchase! 🛍️</div>
+      </div>
+    </div>
+  </div>
+  <div style="height:40px;"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SECTION 4 — MERCHANT SUITE (full-screen page)
+══════════════════════════════════════════════════ -->
+<div id="section-merchant" class="fs-page">
+  <div class="fs-nav">
+    <div class="fs-logo">Own<span>Local</span> · Merchant Suite 🏪</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="ms-shop-pill" style="font-size:11px;font-weight:700;color:#ff8fa3;background:#fff0f3;padding:4px 12px;border-radius:20px;border:1px solid #ffcdd8;"></span>
+      <button class="logout-btn" onclick="handleLogout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Locality Analytics -->
+  <div class="fs-card">
+    <div class="fs-card-title">📍 Locality Analytics</div>
+    <div class="fs-card-body">
+      <div class="stat-card">
+        <div class="stat-label">Rank in Neighbourhood</div>
+        <div class="stat-value" id="ms-rank">#3 in Sector V</div>
+        <div class="stat-sub">Based on loyalty score · Top 10% of merchants</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div class="stat-card" style="flex:1;text-align:center;margin-bottom:0;">
+          <div class="stat-label">Monthly Visitors</div>
+          <div class="stat-value" id="ms-visitors">—</div>
+        </div>
+        <div class="stat-card" style="flex:1;text-align:center;margin-bottom:0;">
+          <div class="stat-label">Avg Spend</div>
+          <div class="stat-value" id="ms-avg-spend">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stakeholder Breakdown -->
+  <div class="fs-card">
+    <div class="fs-card-title">👥 Stakeholder Breakdown</div>
+    <div class="fs-card-body">
+      <div class="merch-stat-row">
+        <div class="merch-stat-box" style="background:linear-gradient(135deg,#ffe08a,#ffc107);">
+          <div class="merch-stat-num" id="ms-gold">—</div>
+          <div class="merch-stat-lbl" style="color:#5c3a00;">🥇 Gold</div>
+        </div>
+        <div class="merch-stat-box">
+          <div class="merch-stat-num" id="ms-silver">—</div>
+          <div class="merch-stat-lbl">🥈 Silver</div>
+        </div>
+        <div class="merch-stat-box" style="background:linear-gradient(135deg,#ffd6b0,#f5a86a);">
+          <div class="merch-stat-num" id="ms-bronze">—</div>
+          <div class="merch-stat-lbl" style="color:#7a3800;">🥉 Bronze</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Equity Pool Tracker -->
+  <div class="fs-card">
+    <div class="fs-card-title">💰 Equity Pool Tracker</div>
+    <div class="fs-card-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:11px;font-weight:700;color:#c2185b;">Community Equity Distributed</span>
+        <span style="font-size:13px;font-weight:800;color:var(--berry);" id="ms-pool-pct">—</span>
+      </div>
+      <div style="background:#ffe3e8;border-radius:20px;height:10px;overflow:hidden;margin-bottom:6px;">
+        <div id="ms-pool-bar" style="background:linear-gradient(90deg,#ff8fa3,#c2185b);height:100%;border-radius:20px;width:0%;transition:width 0.8s ease;"></div>
+      </div>
+      <div style="font-size:10px;color:#aaa;" id="ms-pool-sub">Calculating…</div>
+    </div>
+  </div>
+
+  <!-- Top 5 Stakeholders -->
+  <div class="fs-card">
+    <div class="fs-card-title">🏅 Top 5 Stakeholders</div>
+    <div class="fs-card-body" style="padding:0 18px 14px;">
+      <table class="stake-table">
+        <thead>
+          <tr><th>#</th><th>Stakeholder</th><th>Tier</th><th>Equity %</th><th>Tokens</th></tr>
+        </thead>
+        <tbody id="ms-stake-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODULE 2 — VERIFY OFFLINE PURCHASE CARD -->
+  <div class="offline-verifier-card">
+    <div class="fs-card-title" style="padding:14px 18px 10px;font-size:13px;font-weight:800;color:var(--berry);border-bottom:1px solid #fff0f3;">
+      📲 Verify Offline Purchase
+    </div>
+    <div class="fs-card-body" style="padding:16px 18px;">
+      <p style="font-size:11px;color:#aaa;margin-bottom:14px;line-height:1.5;">
+        Customer shopped in-store? Manually log their bill to push equity tokens directly to their wallet.
+      </p>
+      <label style="display:block;font-size:10px;font-weight:800;color:var(--berry);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;">Customer Phone Number</label>
+      <input type="tel" id="offline-phone" class="offline-input" placeholder="e.g. 9876543210" maxlength="10" inputmode="numeric">
+      <label style="display:block;font-size:10px;font-weight:800;color:var(--berry);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;">Total Bill Amount (₹)</label>
+      <input type="number" id="offline-amount" class="offline-input" placeholder="e.g. 850" min="1">
+      <button id="offline-mint-btn" class="confirm-mint-btn" onclick="confirmOfflineMint()">
+        <span id="offline-btn-text">Confirm &amp; Mint Equity ✨</span>
+        <span class="mini-spinner" id="offline-spinner"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stakeholder Feedback -->
+  <div class="fs-card">
+    <div class="fs-card-title">💬 Stakeholder Feedback</div>
+    <div class="fs-card-body" id="ms-reviews"></div>
+  </div>
+  <div style="height:40px;"></div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────
+// LOCATION DATABASE — 7 hubs, 8 shops each
+// ─────────────────────────────────────────────────
+const LOCATION_DATABASE = {
+"700109":{label:"Belgharia / North Kolkata",bbox:"88.3600,22.6700,88.4000,22.7100",hotspots:[{label:"Belgharia",top:"38%",left:"40%"},{label:"North Hub",top:"55%",left:"52%"}],shops:[
+  {id:101,name:"Tara Sweets",     emoji:"🍬",category:"Sweets & Snacks",rating:4.6,status:"Open",closingTime:"9pm", footfall:210,avgSpending:130, baseEquityPct:1.8},
+  {id:102,name:"North Hub Cafe",  emoji:"☕",category:"Café & Chai",    rating:4.4,status:"Open",closingTime:"10pm",footfall:175,avgSpending:95,  baseEquityPct:2.1},
+  {id:103,name:"Belgharia Books", emoji:"📚",category:"Bookstore",      rating:4.7,status:"Open",closingTime:"8pm", footfall:90, avgSpending:380, baseEquityPct:1.2},
+  {id:104,name:"Fashion Point",   emoji:"👗",category:"Fashion",        rating:4.2,status:"Open",closingTime:"9pm", footfall:260,avgSpending:650, baseEquityPct:0.9},
+  {id:105,name:"The Snack Shack", emoji:"🥪",category:"Sweets & Snacks",rating:3.9,status:"Open",closingTime:"8pm", footfall:310,avgSpending:75,  baseEquityPct:0.6},
+  {id:106,name:"Green Grocers",   emoji:"🥦",category:"Grocery",        rating:4.3,status:"Open",closingTime:"7pm", footfall:195,avgSpending:240, baseEquityPct:1.5},
+  {id:107,name:"Tech Park",       emoji:"💻",category:"Electronics",    rating:4.5,status:"Open",closingTime:"9pm", footfall:140,avgSpending:890, baseEquityPct:2.4},
+  {id:108,name:"Heritage Sarees", emoji:"🪡",category:"Fashion",        rating:4.8,status:"Open",closingTime:"8pm", footfall:120,avgSpending:1200,baseEquityPct:3.1}]},
+"700009":{label:"Sealdah / Central",bbox:"88.3600,22.5600,88.3900,22.5850",hotspots:[{label:"Sealdah",top:"42%",left:"45%"},{label:"Metro Hub",top:"58%",left:"38%"}],shops:[
+  {id:201,name:"Station Brew",    emoji:"☕",category:"Café & Chai",  rating:4.5,status:"Open",closingTime:"10pm",footfall:420,avgSpending:85,  baseEquityPct:2.8},
+  {id:202,name:"City Stationery", emoji:"✏️",category:"Stationery",  rating:4.1,status:"Open",closingTime:"8pm", footfall:180,avgSpending:200, baseEquityPct:1.0},
+  {id:203,name:"Sealdah Silks",   emoji:"🪡",category:"Fashion",      rating:4.7,status:"Open",closingTime:"9pm", footfall:135,avgSpending:950, baseEquityPct:2.3},
+  {id:204,name:"The Big Meal",    emoji:"🍛",category:"Restaurant",   rating:4.4,status:"Open",closingTime:"11pm",footfall:380,avgSpending:320, baseEquityPct:1.7},
+  {id:205,name:"Trackside Tools", emoji:"🔧",category:"Hardware",     rating:3.8,status:"Open",closingTime:"7pm", footfall:95, avgSpending:450, baseEquityPct:0.7},
+  {id:206,name:"Junction Jewelry",emoji:"💍",category:"Jewelry",      rating:4.6,status:"Open",closingTime:"9pm", footfall:110,avgSpending:2200,baseEquityPct:3.5},
+  {id:207,name:"Central Pharmacy",emoji:"💊",category:"Pharmacy",     rating:4.9,status:"Open",closingTime:"11pm",footfall:290,avgSpending:310, baseEquityPct:2.0},
+  {id:208,name:"Metro Mart",      emoji:"🛒",category:"Grocery",      rating:4.2,status:"Open",closingTime:"9pm", footfall:480,avgSpending:560, baseEquityPct:1.3}]},
+"700001":{label:"Howrah / Bridge Area",bbox:"88.3150,22.5600,88.3550,22.5900",hotspots:[{label:"Howrah Bridge",top:"35%",left:"42%"},{label:"Ferry Ghat",top:"55%",left:"55%"}],shops:[
+  {id:301,name:"Riverview Cafe",      emoji:"☕",category:"Café & Chai", rating:4.6,status:"Open",closingTime:"10pm",footfall:220,avgSpending:140, baseEquityPct:2.2},
+  {id:302,name:"Howrah Handlooms",    emoji:"🪡",category:"Fashion",     rating:4.8,status:"Open",closingTime:"8pm", footfall:105,avgSpending:870, baseEquityPct:3.0},
+  {id:303,name:"Bridge Bakers",       emoji:"🥐",category:"Bakery",      rating:4.5,status:"Open",closingTime:"9pm", footfall:195,avgSpending:180, baseEquityPct:1.9},
+  {id:304,name:"The Grand Hotel Shop",emoji:"🏨",category:"Gift Shop",   rating:4.3,status:"Open",closingTime:"10pm",footfall:160,avgSpending:1100,baseEquityPct:2.6},
+  {id:305,name:"Ferry Gifts",         emoji:"🎁",category:"Gift Shop",   rating:4.1,status:"Open",closingTime:"8pm", footfall:130,avgSpending:290, baseEquityPct:1.1},
+  {id:306,name:"Old Town Antiques",   emoji:"🏺",category:"Art & Crafts",rating:4.7,status:"Open",closingTime:"7pm", footfall:75, avgSpending:1800,baseEquityPct:3.8},
+  {id:307,name:"Portside Prints",     emoji:"🖨️",category:"Stationery", rating:4.0,status:"Open",closingTime:"8pm", footfall:115,avgSpending:350, baseEquityPct:0.8},
+  {id:308,name:"Metal Works",         emoji:"⚙️",category:"Hardware",   rating:3.9,status:"Open",closingTime:"6pm", footfall:88, avgSpending:620, baseEquityPct:0.5}]},
+"700019":{label:"Gariahat / South Kolkata",bbox:"88.3550,22.5050,88.3750,22.5250",hotspots:[{label:"Gariahat",top:"45%",left:"42%"},{label:"Ballygunge",top:"35%",left:"55%"},{label:"South City",top:"62%",left:"48%"}],shops:[
+  {id:401,name:"Inika's Boutique",        emoji:"👗",category:"Fashion",       rating:4.8,status:"Open",closingTime:"9pm", footfall:182,avgSpending:850, baseEquityPct:2.4},
+  {id:402,name:"Gariahat Grill",          emoji:"🍛",category:"Restaurant",    rating:4.5,status:"Open",closingTime:"11pm",footfall:310,avgSpending:420, baseEquityPct:1.8},
+  {id:403,name:"Silk Route",              emoji:"🪡",category:"Fashion",       rating:4.6,status:"Open",closingTime:"9pm", footfall:145,avgSpending:1100,baseEquityPct:3.2},
+  {id:404,name:"The Terrace Cafe",        emoji:"☕",category:"Café & Chai",  rating:4.7,status:"Open",closingTime:"10pm",footfall:230,avgSpending:210, baseEquityPct:2.1},
+  {id:405,name:"South KOL Stationery",   emoji:"✏️",category:"Stationery",   rating:4.2,status:"Open",closingTime:"8pm", footfall:120,avgSpending:180, baseEquityPct:1.0},
+  {id:406,name:"Bead World",             emoji:"📿",category:"Art & Crafts",  rating:4.4,status:"Open",closingTime:"8pm", footfall:95, avgSpending:290, baseEquityPct:1.4},
+  {id:407,name:"Pavement Prints",        emoji:"🖼️",category:"Art & Crafts", rating:4.3,status:"Open",closingTime:"7pm", footfall:80, avgSpending:450, baseEquityPct:1.1},
+  {id:408,name:"Artisan Avenue",         emoji:"🎨",category:"Art & Crafts",  rating:4.9,status:"Open",closingTime:"9pm", footfall:110,avgSpending:680, baseEquityPct:3.5}]},
+"700032":{label:"Jadavpur / University Area",bbox:"88.3700,22.4950,88.4000,22.5200",hotspots:[{label:"8B Stop",top:"40%",left:"38%"},{label:"University",top:"52%",left:"55%"}],shops:[
+  {id:501,name:"8B Chai",          emoji:"☕",category:"Café & Chai",  rating:4.9,status:"Open",closingTime:"11pm",footfall:520,avgSpending:65,  baseEquityPct:3.8},
+  {id:502,name:"University Books", emoji:"📚",category:"Bookstore",    rating:4.8,status:"Open",closingTime:"9pm", footfall:310,avgSpending:420, baseEquityPct:2.9},
+  {id:503,name:"Rosé Bakery",      emoji:"🥐",category:"Bakery",       rating:4.7,status:"Open",closingTime:"9pm", footfall:240,avgSpending:195, baseEquityPct:3.2},
+  {id:504,name:"Student's Den",    emoji:"🍜",category:"Restaurant",   rating:4.5,status:"Open",closingTime:"10pm",footfall:480,avgSpending:120, baseEquityPct:2.0},
+  {id:505,name:"The Print Shop",   emoji:"🖨️",category:"Stationery",  rating:4.1,status:"Open",closingTime:"8pm", footfall:195,avgSpending:85,  baseEquityPct:1.2},
+  {id:506,name:"Campus Canteen",   emoji:"🍛",category:"Restaurant",   rating:4.3,status:"Open",closingTime:"10pm",footfall:560,avgSpending:90,  baseEquityPct:1.6},
+  {id:507,name:"Jadavpur Journals",emoji:"📰",category:"Stationery",   rating:4.0,status:"Open",closingTime:"7pm", footfall:140,avgSpending:150, baseEquityPct:0.9},
+  {id:508,name:"Tech Hub",         emoji:"💻",category:"Electronics",  rating:4.6,status:"Open",closingTime:"9pm", footfall:175,avgSpending:760, baseEquityPct:2.5}]},
+"700091":{label:"Salt Lake / Sector V IT Hub",bbox:"88.4000,22.5700,88.4350,22.5950",hotspots:[{label:"Sector V",top:"38%",left:"42%"},{label:"City Centre",top:"56%",left:"55%"}],shops:[
+  {id:601,name:"Byte & Brew",      emoji:"☕",category:"Café & Chai",    rating:4.8,status:"Open",closingTime:"11pm",footfall:480,avgSpending:220, baseEquityPct:3.5},
+  {id:602,name:"SectorV Sushi",    emoji:"🍱",category:"Restaurant",     rating:4.7,status:"Open",closingTime:"11pm",footfall:310,avgSpending:850, baseEquityPct:4.2},
+  {id:603,name:"TechGear Store",   emoji:"💻",category:"Electronics",    rating:4.6,status:"Open",closingTime:"9pm", footfall:290,avgSpending:3200,baseEquityPct:5.0},
+  {id:604,name:"The Co-Work Café", emoji:"🖥️",category:"Café & Chai",   rating:4.9,status:"Open",closingTime:"10pm",footfall:420,avgSpending:180, baseEquityPct:4.8},
+  {id:605,name:"Startup Snacks",   emoji:"🥪",category:"Sweets & Snacks",rating:4.3,status:"Open",closingTime:"9pm", footfall:350,avgSpending:120, baseEquityPct:2.1},
+  {id:606,name:"City Centre Books",emoji:"📚",category:"Bookstore",      rating:4.5,status:"Open",closingTime:"9pm", footfall:180,avgSpending:490, baseEquityPct:2.8},
+  {id:607,name:"Pixel & Print",    emoji:"🖨️",category:"Stationery",    rating:4.2,status:"Open",closingTime:"8pm", footfall:195,avgSpending:260, baseEquityPct:1.9},
+  {id:608,name:"IT Hub Pharmacy",  emoji:"💊",category:"Pharmacy",       rating:4.7,status:"Open",closingTime:"11pm",footfall:260,avgSpending:340, baseEquityPct:2.6}]},
+"700016":{label:"Park Street / High-End Dining",bbox:"88.3450,22.5500,88.3700,22.5700",hotspots:[{label:"Park Street",top:"40%",left:"45%"},{label:"Camac St",top:"58%",left:"38%"}],shops:[
+  {id:701,name:"Flurys",             emoji:"🎂",category:"Luxury Dining",rating:4.9,status:"Open",closingTime:"10pm",footfall:520,avgSpending:1800,baseEquityPct:8.5},
+  {id:702,name:"Peter Cat",          emoji:"🍽️",category:"Luxury Dining",rating:4.8,status:"Open",closingTime:"11pm",footfall:410,avgSpending:2400,baseEquityPct:9.2},
+  {id:703,name:"Mocambo",            emoji:"🥩",category:"Luxury Dining",rating:4.9,status:"Open",closingTime:"11pm",footfall:380,avgSpending:2800,baseEquityPct:9.8},
+  {id:704,name:"The Sky Lounge",     emoji:"🍸",category:"Luxury Dining",rating:4.7,status:"Open",closingTime:"12am",footfall:290,avgSpending:3500,baseEquityPct:7.6},
+  {id:705,name:"Cakewalk Patisserie",emoji:"🧁",category:"Bakery",       rating:4.8,status:"Open",closingTime:"10pm",footfall:340,avgSpending:950, baseEquityPct:6.4},
+  {id:706,name:"Oxford Bookstore",   emoji:"📚",category:"Bookstore",    rating:4.9,status:"Open",closingTime:"9pm", footfall:310,avgSpending:780, baseEquityPct:5.9},
+  {id:707,name:"Park St Jewels",     emoji:"💎",category:"Jewelry",      rating:4.7,status:"Open",closingTime:"9pm", footfall:160,avgSpending:8500,baseEquityPct:11.2},
+  {id:708,name:"La Patisserie",      emoji:"🥐",category:"Bakery",       rating:4.6,status:"Open",closingTime:"9pm", footfall:280,avgSpending:1200,baseEquityPct:7.1}]}
+};
+const ALL_SHOPS_FLAT = Object.values(LOCATION_DATABASE).flatMap(l => l.shops);
+
+// ─────────────────────────────────────────────────
+// PRODUCTS
+// ─────────────────────────────────────────────────
+const CATEGORY_PRODUCTS = {
+"Café & Chai":[{emoji:"☕",name:"Signature Brew",price:"₹189",desc:"House blend, hot or cold"},{emoji:"🥐",name:"Croissant",price:"₹99",desc:"Freshly baked daily"},{emoji:"🫙",name:"Bean Jar 250g",price:"₹349",desc:"Take the café home"},{emoji:"🍰",name:"Cake Slice",price:"₹129",desc:"Changes daily"}],
+"Bakery":[{emoji:"🌹",name:"Rose Lychee Cake",price:"₹649",desc:"500g, custom message"},{emoji:"🍪",name:"Cookie Box (12)",price:"₹189",desc:"Baked fresh each morning"},{emoji:"🧁",name:"Signature Cupcake",price:"₹149",desc:"Swiss meringue frosting"},{emoji:"🥐",name:"Butter Croissant",price:"₹99",desc:"Flaky & golden"}],
+"Sweets & Snacks":[{emoji:"🍬",name:"Mishti Box 500g",price:"₹299",desc:"Assorted Bengali sweets"},{emoji:"🍡",name:"Sandesh Pack",price:"₹199",desc:"Classic chhena dessert"},{emoji:"🥜",name:"Namkeen Jar",price:"₹149",desc:"Crispy & spiced"},{emoji:"🍫",name:"Chocolate Bark",price:"₹249",desc:"Dark & salted caramel"}],
+"Grocery":[{emoji:"🥦",name:"Veggie Basket",price:"₹199",desc:"Fresh, local produce"},{emoji:"🛒",name:"Weekly Bundle",price:"₹599",desc:"Save 15% on essentials"},{emoji:"🌾",name:"Organic Rice 2kg",price:"₹179",desc:"Farm to home"},{emoji:"🫙",name:"Pickle Jar",price:"₹129",desc:"House-made, spicy mango"}],
+"Fashion":[{emoji:"👗",name:"Silk Kurti",price:"₹1299",desc:"Hand-block printed"},{emoji:"🪡",name:"Handloom Dupatta",price:"₹699",desc:"Jamdani weave"},{emoji:"👜",name:"Jute Tote",price:"₹349",desc:"Eco-friendly, branded"},{emoji:"💍",name:"Silver Earrings",price:"₹499",desc:"Sterling silver, artisan"}],
+"Bookstore":[{emoji:"📚",name:"Staff Pick Novel",price:"₹399",desc:"This month's favourite"},{emoji:"📓",name:"Journal A5",price:"₹249",desc:"Dotted, 200 pages"},{emoji:"🖊️",name:"Pen Set",price:"₹199",desc:"Smooth writing experience"},{emoji:"📦",name:"Book Bundle x3",price:"₹799",desc:"Curated by category"}],
+"Stationery":[{emoji:"✏️",name:"Pencil Set 12pk",price:"₹149",desc:"Premium graphite"},{emoji:"📋",name:"Notebook Pack",price:"₹299",desc:"Set of 3, ruled"},{emoji:"🖨️",name:"100 Prints",price:"₹199",desc:"A4 glossy / matte"},{emoji:"📦",name:"Study Kit",price:"₹449",desc:"Everything you need"}],
+"Art & Crafts":[{emoji:"🎨",name:"Watercolour Set",price:"₹499",desc:"24 professional pigments"},{emoji:"🖼️",name:"Canvas A3",price:"₹299",desc:"Stretched, ready to paint"},{emoji:"📿",name:"Bead Kit",price:"₹199",desc:"200 beads + wire"},{emoji:"🪆",name:"Craft Bundle",price:"₹649",desc:"Curated for beginners"}],
+"Pharmacy":[{emoji:"💊",name:"Vitamin C 60s",price:"₹349",desc:"1000mg, immunity boost"},{emoji:"🩺",name:"BP Check Kit",price:"₹199",desc:"Walk-in, 5 min results"},{emoji:"🌿",name:"Tulsi Drops",price:"₹129",desc:"Immunity herbal extract"},{emoji:"🧴",name:"Sunscreen SPF50",price:"₹299",desc:"Dermatologist tested"}],
+"Gift Shop":[{emoji:"🎁",name:"Gift Hamper",price:"₹799",desc:"Curated for any occasion"},{emoji:"🕯️",name:"Soy Candle",price:"₹349",desc:"Rose & oud fragrance"},{emoji:"🎀",name:"Ribbon Wrap Set",price:"₹199",desc:"4 premium rolls"},{emoji:"📿",name:"Beaded Keychain",price:"₹99",desc:"Handcrafted, limited"}],
+"Restaurant":[{emoji:"🍛",name:"Thali (veg)",price:"₹199",desc:"8 items, unlimited refill"},{emoji:"🥘",name:"Biryani Box",price:"₹299",desc:"Dum cooked, serves 1"},{emoji:"🍜",name:"Noodle Bowl",price:"₹149",desc:"Spicy, street-style"},{emoji:"🧆",name:"Snack Box",price:"₹99",desc:"4 items, combo deal"}],
+"Electronics":[{emoji:"💻",name:"Laptop Stand",price:"₹699",desc:"Ergonomic, foldable"},{emoji:"🖱️",name:"Wireless Mouse",price:"₹499",desc:"2.4GHz, silent click"},{emoji:"🔌",name:"USB-C Hub 7-in-1",price:"₹1299",desc:"Fast charging supported"},{emoji:"🎧",name:"Earbuds",price:"₹1499",desc:"Active noise cancellation"}],
+"Jewelry":[{emoji:"💍",name:"Silver Ring",price:"₹899",desc:"Sterling silver, 92.5%"},{emoji:"📿",name:"Bead Necklace",price:"₹699",desc:"Handstrung, unique"},{emoji:"✨",name:"Gold Plated Set",price:"₹1299",desc:"Earring + neckpiece"},{emoji:"🎁",name:"Jewelry Box",price:"₹449",desc:"Gift-ready, velvet lined"}],
+"Hardware":[{emoji:"🔧",name:"Tool Kit 28pc",price:"₹599",desc:"Household essentials"},{emoji:"💡",name:"LED Bulb Pack x4",price:"₹299",desc:"9W, 6500K daylight"},{emoji:"🪣",name:"Storage Set",price:"₹399",desc:"3 sizes, stackable"},{emoji:"🔩",name:"Fastener Box",price:"₹149",desc:"Assorted nuts & bolts"}],
+"Luxury Dining":[{emoji:"🍽️",name:"Chef's Table (2)",price:"₹4,999",desc:"7-course tasting menu"},{emoji:"🍾",name:"Wine Pairing Set",price:"₹2,499",desc:"Sommelier curated, 3 pours"},{emoji:"🎂",name:"Celebration Cake",price:"₹1,899",desc:"Custom, 6-inch, serves 4"},{emoji:"🥂",name:"Premium Cocktail",price:"₹899",desc:"Signature craft cocktail"}],
+"default":[{emoji:"🫖",name:"Local Bestseller",price:"₹199",desc:"Most loved product"},{emoji:"🍰",name:"Sweet Treat",price:"₹149",desc:"Made with love"},{emoji:"🧴",name:"Signature Item",price:"₹349",desc:"Store exclusive"},{emoji:"📦",name:"Mystery Bundle",price:"₹499",desc:"Earn 2x tokens today!"}]
+};
+const PRODUCTS = new Proxy({}, {
+  get(_, shopId) {
+    const shop = ALL_SHOPS_FLAT.find(s => s.id === Number(shopId));
+    if (!shop) return CATEGORY_PRODUCTS["default"];
+    return CATEGORY_PRODUCTS[shop.category] || CATEGORY_PRODUCTS["default"];
+  }
+});
+
+// ─────────────────────────────────────────────────
+// APP STATE
+// ─────────────────────────────────────────────────
+const APP = {
+  pincode:         localStorage.getItem("ol_pincode") || "",
+  totalSpend:      parseFloat(localStorage.getItem("ol_spend")) || 0,
+  totalEquity:     parseFloat(localStorage.getItem("ol_equity")) || 0,
+  shopEquityEarned:JSON.parse(localStorage.getItem("ol_shop_equity") || "{}"),
+  activityLedger:  JSON.parse(localStorage.getItem("ol_ledger") || "[]"),
+  shops:           [],
+  // Auth lifecycle: "guest" | "waitlisted" | "loggedIn"
+  authState:       localStorage.getItem("ol_auth") || "guest",
+  merchantName:    ""
+};
+
+// Derived
+let isUserLoggedIn = APP.authState === "loggedIn";
+
+// ─────────────────────────────────────────────────
+// SECTION NAVIGATION
+// showSection only manages .app-section and .fs-page elements.
+// Modals (z-index overlays) are managed independently and
+// are NEVER hidden by showSection — keeping Map/Modal isolation.
+// ─────────────────────────────────────────────────
+function showSection(id) {
+  document.querySelectorAll(".app-section, .fs-page").forEach(el => {
+    el.classList.remove("active");
+  });
+  const target = document.getElementById(id);
+  if (target) target.classList.add("active");
+}
+
+// ─────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────
+(function boot() {
+  syncAuthButtons();
+
+  // ── Session Restore ──────────────────────────────
+  // If a merchant was previously logged in, restore their session
+  // and go straight to the merchant dashboard.
+  const savedMerchant = localStorage.getItem("ol_merchant_name");
+  const merchantLoggedIn = localStorage.getItem("ol_merchant_logged_in");
+  if (savedMerchant && merchantLoggedIn === "true") {
+    APP.merchantName = savedMerchant;
+    showSection("section-merchant");
+    // Fetch fresh profile from backend
+    fetch("http://localhost:5000/merchant-profile?shop_name=" + encodeURIComponent(savedMerchant))
+      .then(r => {
+        if (!r.ok) {
+          console.log("Session restore response not ok:", r.status, r.statusText);
+          throw new Error("HTTP " + r.status);
+        }
+        return r.json();
+      })
+      .then(profile => {
+        if (!profile.detail) populateMerchantDashboard(profile);
+        else populateMerchantSuite();
+      })
+      .catch(err => {
+        console.log("Error restoring merchant session:", err);
+        populateMerchantSuite();
+      });
+    return; // skip normal pincode boot
+  }
+  // ── End Session Restore ──────────────────────────
+
+  if (APP.pincode.length === 6) {
+    showSection("section-landing");
+    restoreLocationUI();
+    loadShops(APP.pincode);
+    startNotificationLoop();
+    updateEquityBar();
+    document.getElementById("equity-bar").classList.add("show");
+    setTimeout(() => showToast("Welcome back! " + APP.pincode + " loaded 🌸"), 1000);
+  } else {
+    showSection("section-pincode");
+  }
+})();
+
+// ─────────────────────────────────────────────────
+// SYNC AUTH BUTTONS
+// Manages the 3-state nav button system:
+//   guest      → "Join the Waitlist" visible
+//   waitlisted → "Sign Up to Own" visible
+//   loggedIn   → "My Account" visible
+// "My Account" starts as display:none and is only
+//   revealed after successful OTP verification.
+// ─────────────────────────────────────────────────
+function syncAuthButtons() {
+  const btnWaitlist = document.getElementById("btn-join-waitlist");
+  const btnCreate   = document.getElementById("btn-create-account");
+  const btnAccount  = document.getElementById("btn-my-account");
+
+  if (APP.authState === "guest") {
+    btnWaitlist.style.display = "inline-block";
+    btnCreate.style.display   = "none";
+    btnAccount.style.display  = "none";
+  } else if (APP.authState === "waitlisted") {
+    btnWaitlist.style.display = "none";
+    btnCreate.style.display   = "inline-block";
+    btnAccount.style.display  = "none";
+  } else if (APP.authState === "loggedIn") {
+    btnWaitlist.style.display = "none";
+    btnCreate.style.display   = "none";
+    btnAccount.style.display  = "inline-block";
+    isUserLoggedIn = true;
+  }
+}
+
+// ─────────────────────────────────────────────────
+// STEP 1 — JOIN WAITLIST
+// Transitions CTA from "Join the Waitlist" → "Sign Up to Own"
+// ─────────────────────────────────────────────────
+function handleJoinWaitlist() {
+  APP.authState = "waitlisted";
+  localStorage.setItem("ol_auth", "waitlisted");
+  showToast("Welcome to the inner circle! 💌");
+  syncAuthButtons();
+}
+
+// ─────────────────────────────────────────────────
+// STEP 2 — SIGN UP: opens OTP modal
+// Does NOT change authState yet — that happens after OTP verify.
+// Isolated from section transitions; modal is a z-index overlay.
+// ─────────────────────────────────────────────────
+function handleUserSignUp() {
+  openOtpModal();
+}
+
+// ─────────────────────────────────────────────────
+// MY ACCOUNT BUTTON — route to portfolio
+// ─────────────────────────────────────────────────
+document.getElementById("btn-my-account").addEventListener("click", function() {
+  populatePortfolio();
+  showSection("section-portfolio");
+});
+
+function closePortfolio() {
+  showSection("section-landing");
+}
+
+// ─────────────────────────────────────────────────
+// MODULE 1 — OTP MODAL LOGIC
+// ─────────────────────────────────────────────────
+
+// Internal: stores the simulated OTP for the session
+let _simulatedOtp = "";
+
+function openOtpModal() {
+  // Reset both steps to initial state
+  document.getElementById("otp-phone-input").value = "";
+  document.getElementById("otp-code-input").value  = "";
+  document.getElementById("otp-step-verify").classList.remove("show");
+  _simulatedOtp = "";
+  document.getElementById("otp-overlay").classList.add("open");
+}
+
+function closeOtpModal() {
+  document.getElementById("otp-overlay").classList.remove("open");
+}
+
+// Clicking backdrop (not the modal itself) dismisses it
+function handleOtpOverlayClick(e) {
+  if (e.target === document.getElementById("otp-overlay")) closeOtpModal();
+}
+
+function sendOtp() {
+  const phone = document.getElementById("otp-phone-input").value.trim();
+  if (!/^\d{10}$/.test(phone)) {
+    showToast("Please enter a valid 10-digit phone number 📱");
+    document.getElementById("otp-phone-input").focus();
+    return;
+  }
+  // Simulate a 4-digit OTP
+  _simulatedOtp = String(Math.floor(1000 + Math.random() * 9000));
+
+  // Update the hint label
+  document.getElementById("otp-sent-label").textContent =
+    "OTP sent to +91 " + phone.slice(0,5) + "XXXXX · (Demo: " + _simulatedOtp + ")";
+
+  // Reveal the verify step with animation
+  document.getElementById("otp-step-verify").classList.add("show");
+  document.getElementById("otp-code-input").focus();
+  showToast("OTP dispatched to +91 " + phone.slice(0,5) + "XXXXX 🔐");
+}
+
+function resendOtp() {
+  const phone = document.getElementById("otp-phone-input").value.trim();
+  if (!phone) return;
+  _simulatedOtp = String(Math.floor(1000 + Math.random() * 9000));
+  document.getElementById("otp-sent-label").textContent =
+    "OTP resent to +91 " + phone.slice(0,5) + "XXXXX · (Demo: " + _simulatedOtp + ")";
+  document.getElementById("otp-code-input").value = "";
+  showToast("New OTP resent! 🔁");
+}
+
+function verifyOtp() {
+  const entered = document.getElementById("otp-code-input").value.trim();
+  if (entered.length !== 4) {
+    showToast("Please enter the 4-digit OTP 🔑");
+    return;
+  }
+  if (entered !== _simulatedOtp) {
+    showToast("Incorrect OTP. Please try again ❌");
+    document.getElementById("otp-code-input").value = "";
+    document.getElementById("otp-code-input").focus();
+    return;
+  }
+
+  // ✅ OTP Correct — complete sign-up
+  APP.authState = "loggedIn";
+  localStorage.setItem("ol_auth", "loggedIn");
+  isUserLoggedIn = true;
+
+  closeOtpModal();
+  syncAuthButtons(); // Permanently reveals "My Account" button
+
+  // Show the "Securely Logged In" toast with a slight delay for smoothness
+  setTimeout(() => showToast("Securely Logged In 🔒 Welcome to OwnLocal!"), 250);
+}
+
+// ─────────────────────────────────────────────────
+// UNLOCK APP (pincode entry)
+// ─────────────────────────────────────────────────
+function unlockApp() {
+  const val = document.getElementById("pin-input").value.trim();
+  if (val.length < 6) { showToast("Enter a 6-digit pincode ✨"); return; }
+  APP.pincode = val;
+  localStorage.setItem("ol_pincode", val);
+  const isKnown = !!LOCATION_DATABASE[val];
+  if (!isKnown) setTimeout(() => showToast("Coming soon to your neighborhood! ✨"), 600);
+  showSection("section-landing");
+  restoreLocationUI();
+  document.getElementById("equity-bar").classList.add("show");
+  updateEquityBar();
+  loadShops(val);
+  startNotificationLoop();
+}
+
+function restoreLocationUI() {
+  const loc = LOCATION_DATABASE[APP.pincode];
+  document.getElementById("nav-location").textContent = "📍 " + (loc ? loc.label : APP.pincode);
+  document.getElementById("nav-location-wrap").style.display = "flex";
+  document.getElementById("sidebar-pincode").textContent = APP.pincode;
+}
+
+function changeLocation() {
+  APP.pincode = "";
+  APP.shops = [];
+  localStorage.removeItem("ol_pincode");
+  document.getElementById("equity-bar").classList.remove("show");
+  document.getElementById("nav-location-wrap").style.display = "none";
+  document.getElementById("pin-input").value = "";
+  hideShops();
+  showSection("section-pincode");
+}
+
+// ─────────────────────────────────────────────────
+// LOAD SHOPS
+// ─────────────────────────────────────────────────
+function loadShops(pincode, cb) {
+  document.getElementById("loading-shops").style.display = "block";
+  document.getElementById("shop-list").innerHTML = "";
+  const loc = LOCATION_DATABASE[pincode];
+  if (!loc) {
+    setTimeout(() => {
+      document.getElementById("loading-shops").style.display = "none";
+      APP.shops = []; renderShops([]); if (cb) cb();
+    }, 600);
+    return;
+  }
+  panMapTo(loc.bbox);
+  document.getElementById("sidebar-title").textContent = "Shops in " + loc.label;
+  setTimeout(() => {
+    APP.shops = loc.shops;
+    document.getElementById("loading-shops").style.display = "none";
+    renderShops(APP.shops); renderHotspots();
+    if (cb) cb();
+  }, 900);
+}
+
+// ─────────────────────────────────────────────────
+// MAP
+// showShops / hideShops operate on body classes and
+// CSS opacity — they do NOT call showSection, so the
+// OTP modal and other overlays remain unaffected.
+// ─────────────────────────────────────────────────
+function panMapTo(bbox) {
+  const iframe = document.getElementById("jmap-img");
+  iframe.style.opacity = "0";
+  setTimeout(() => {
+    const enc = bbox.split(",").map(encodeURIComponent).join("%2C");
+    iframe.src = "https://www.openstreetmap.org/export/embed.html?bbox=" + enc + "&layer=mapnik";
+    iframe.style.opacity = "";
+  }, 350);
+}
+function showShops() {
+  document.getElementById("section-landing").style.opacity = "0";
+  document.getElementById("section-landing").style.pointerEvents = "none";
+  document.body.classList.add("map-active");
+  document.getElementById("shop-sidebar").classList.add("visible");
+  document.getElementById("shop-sidebar-toggle").classList.add("show");
+  document.getElementById("shop-sidebar-toggle").classList.add("expanded");
+  document.getElementById("ai-bubble").classList.add("show");
+  const loc = LOCATION_DATABASE[APP.pincode];
+  document.getElementById("sidebar-title").textContent = loc ? "Shops in " + loc.label : "Shops Near You";
+  if (APP.shops.length === 0 && APP.pincode) loadShops(APP.pincode);
+  else renderHotspots();
+}
+function hideShops() {
+  document.getElementById("section-landing").style.opacity = "1";
+  document.getElementById("section-landing").style.pointerEvents = "auto";
+  document.body.classList.remove("map-active");
+  document.getElementById("shop-sidebar").classList.remove("visible");
+  document.getElementById("shop-sidebar-toggle").classList.remove("show");
+  document.getElementById("shop-sidebar-toggle").classList.remove("expanded");
+  document.getElementById("hotspot-layer").innerHTML = "";
+  document.getElementById("ai-bubble").classList.remove("show");
+  document.getElementById("ai-chat-panel").classList.remove("open");
+  document.getElementById("product-drawer-overlay").classList.remove("open");
+}
+function toggleSidebar() {
+  const sidebar = document.getElementById("shop-sidebar");
+  const toggle = document.getElementById("shop-sidebar-toggle");
+  if (sidebar.classList.contains("visible")) {
+    sidebar.classList.remove("visible");
+    toggle.classList.remove("expanded");
+    toggle.classList.add("collapsed");
+  } else {
+    sidebar.classList.add("visible");
+    toggle.classList.add("expanded");
+    toggle.classList.remove("collapsed");
+  }
+}
+function renderHotspots() {
+  const layer = document.getElementById("hotspot-layer"); layer.innerHTML = "";
+  const loc = LOCATION_DATABASE[APP.pincode]; if (!loc) return;
+  loc.hotspots.forEach(h => {
+    const dot = document.createElement("div"); dot.className = "map-hotspot";
+    dot.style.top = h.top; dot.style.left = h.left;
+    dot.innerHTML = "🏪<span class='hotspot-label'>" + h.label + "</span>";
+    dot.onclick = () => {
+      const filtered = APP.shops.filter(s => s.name.toLowerCase().includes(h.label.toLowerCase()));
+      renderShops(filtered.length ? filtered : APP.shops);
+      document.getElementById("sidebar-title").textContent = "Shops near " + h.label;
+    };
+    layer.appendChild(dot);
+  });
+}
+
+// ─────────────────────────────────────────────────
+// TIER SYSTEM
+// ─────────────────────────────────────────────────
+const BRONZE_REWARDS = {"Café & Chai":"1 Free Coffee/month","Bakery":"1 Free Pastry/month","Sweets & Snacks":"1 Free Sweet/month","Grocery":"1 Free Home Delivery/month","Gift Shop":"1 Free Gift Wrap/month","Bookstore":"1 Free Bookmark/month","Art & Crafts":"1 Free Craft Kit Sample/month","Pharmacy":"1 Free Blood Test/month","Luxury Dining":"1 Complimentary Dessert/month","Restaurant":"1 Free Appetiser/month","Hardware":"1 Free Home Delivery/month","default":"1 Free Item/month"};
+function getTierList(shop) {
+  const b = BRONZE_REWARDS[shop ? shop.category : ""] || BRONZE_REWARDS["default"];
+  return [
+    {name:"Bronze",label:"Local",   tokens:500,  cls:"tier-bronze",icon:"🥉",reward:b},
+    {name:"Silver",label:"Partner", tokens:2000, cls:"tier-silver", icon:"🥈",reward:"5% Lifetime Discount + Voting Rights"},
+    {name:"Gold",  label:"Stakeholder",tokens:10000,cls:"tier-gold",icon:"🥇",reward:"Legal Revenue-Share Equity"}
+  ];
+}
+function getTier(tokens, shop) { const t = getTierList(shop); if (tokens >= 10000) return t[2]; if (tokens >= 2000) return t[1]; return t[0]; }
+function getNextTier(tokens) {
+  if (tokens < 500)  return {needed:500,  label:"Bronze"};
+  if (tokens < 2000) return {needed:2000, label:"Silver"};
+  if (tokens < 10000)return {needed:10000,label:"Gold"};
+  return {needed:10000, label:"Gold"};
+}
+function pctToTokens(pct) { return Math.round(pct * 100); }
+function shopTokens(sh) { return pctToTokens((sh.baseEquityPct||0) + (APP.shopEquityEarned[sh.id]||0)); }
+function shopPct(sh) { return ((sh.baseEquityPct||0) + (APP.shopEquityEarned[sh.id]||0)).toFixed(2); }
+
+// ─────────────────────────────────────────────────
+// RENDER SHOPS (sidebar)
+// ─────────────────────────────────────────────────
+function getRecommendedShops(shops) {
+  const scored = shops.map(s => ({id:s.id, score:s.rating*20+(s.footfall/10)+(APP.totalSpend>500?s.avgSpending/20:0)}));
+  scored.sort((a,b)=>b.score-a.score); return scored.slice(0,2).map(s=>s.id);
+}
+function aiInsight(shop) {
+  const {rating,footfall,avgSpending,category} = shop;
+  if (rating>=4.5&&footfall>200) return "High foot traffic and stellar ratings signal strong growth. 📈";
+  if (rating>=4.5&&footfall<=200) return "Hidden gem! Loyal base with room to grow. 💎";
+  if (rating>=4.0&&footfall>300) return "Popular spot with solid community trust. 🏆";
+  if (rating<4.0&&footfall>300) return "High traffic despite avg ratings — improving could unlock value. ⚡";
+  if (rating<4.0) return "Below-average sentiment. Monitor before investing equity. ⚠️";
+  if (category.includes("Chai")||category.includes("Café")) return "Daily habits = consistent foot traffic & recurring equity. ☕";
+  if (avgSpending>500) return "Higher avg spend per visit = more equity per transaction. 💰";
+  return "Steady local business with consistent neighbourhood demand. 🌱";
+}
+function renderShops(shops) {
+  const container = document.getElementById("shop-list"); container.innerHTML = "";
+  const rec = getRecommendedShops(shops);
+  shops.forEach(shop => {
+    const tokens = shopTokens(shop);
+    const tier   = getTier(tokens, shop);
+    const next   = getNextTier(tokens);
+    const fill   = Math.min((tokens / next.needed) * 100, 100).toFixed(1);
+    const isRec  = rec.includes(shop.id);
+    const card   = document.createElement("div");
+    card.className = "bg-white p-4 rounded-2xl mb-4 border border-pink-100 shadow-sm";
+    card.innerHTML = `
+      ${isRec ? '<div class="recommended-badge">⭐ Recommended for you</div>' : ""}
+      <div style="display:flex;gap:14px;">
+        <div class="shop-thumb">${shop.emoji}</div>
+        <div style="flex:1;">
+          <span class="tier-badge ${tier.cls}">${tier.icon} ${tier.name} · ${tier.label}</span>
+          <h4 style="font-weight:700;font-size:14px;margin:2px 0;">${shop.name}</h4>
+          <p style="font-size:11px;color:#aaa;">${shop.category} • ${shop.rating} ★</p>
+          <p style="font-size:11px;font-weight:700;color:${shop.status==='Open'?'#4caf50':'#e57373'};margin-top:2px;">${shop.status} • Closes ${shop.closingTime}</p>
+          <div style="margin-top:9px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:#c2185b;" id="stake-${shop.id}">${tokens} tokens</span>
+              <span style="font-size:10px;color:#aaa;">Next: ${next.label} (${next.needed})</span>
+            </div>
+            <div style="background:#ffe3e8;border-radius:20px;height:7px;overflow:hidden;">
+              <div id="stake-bar-${shop.id}" class="tier-bar-fill" style="width:${fill}%;"></div>
+            </div>
+            <div style="font-size:10px;color:#ff8fa3;margin-top:4px;font-weight:600;" id="tier-reward-${shop.id}">🎁 ${tier.reward}</div>
+          </div>
+          <div class="ai-insight-badge">🤖 ${aiInsight(shop)}</div>
+          <div style="margin-top:6px;">
+            <button class="shop-online-btn" onclick="openDrawer(${shop.id})">Shop Online ✨</button>
+          </div>
+        </div>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+// ─────────────────────────────────────────────────
+// EQUITY ENGINE
+// ─────────────────────────────────────────────────
+function calculateEquity(spend) { return parseFloat((spend * 0.02).toFixed(2)); }
+function updateEquityBar() {
+  document.getElementById("eq-total-spend").textContent  = "₹" + APP.totalSpend.toFixed(0);
+  document.getElementById("eq-total-equity").textContent = "₹" + APP.totalEquity.toFixed(2);
+  const pct = Math.min((APP.totalSpend / 50000) * 100, 100);
+  document.getElementById("eq-progress").style.width = pct + "%";
+  const own = ((APP.totalEquity / 500000) * 100).toFixed(4);
+  document.getElementById("eq-ownership-text").textContent = "Own " + own + "% of your local area";
+}
+function applyEquityToShop(shop, equity) {
+  if (!shop) return;
+  const prevTokens = shopTokens(shop);
+  const gainPct = parseFloat((equity * 0.04).toFixed(4));
+  APP.shopEquityEarned[shop.id] = parseFloat(((APP.shopEquityEarned[shop.id]||0) + gainPct).toFixed(4));
+  localStorage.setItem("ol_shop_equity", JSON.stringify(APP.shopEquityEarned));
+  const newTokens = shopTokens(shop);
+  const newTier   = getTier(newTokens, shop);
+  const next      = getNextTier(newTokens);
+  const fill      = Math.min((newTokens / next.needed) * 100, 100).toFixed(1);
+  const el_s = document.getElementById("stake-"+shop.id);
+  const el_b = document.getElementById("stake-bar-"+shop.id);
+  const el_r = document.getElementById("tier-reward-"+shop.id);
+  if (el_s) el_s.textContent = newTokens + " tokens";
+  if (el_b) el_b.style.width = fill + "%";
+  if (el_r) el_r.textContent = "🎁 " + newTier.reward;
+  const prevTier = getTier(prevTokens, shop);
+  if (newTier.name !== prevTier.name) showToast("🎉 Tier Up! You're now " + newTier.icon + " " + newTier.name + " at " + shop.name + "!");
+}
+function heartBurst(anchor) {
+  const hearts = ["💖","💗","💕","💓","🌸"];
+  for (let i = 0; i < 5; i++) setTimeout(() => {
+    const el = document.createElement("div"); el.className = "heart-burst";
+    el.textContent = hearts[Math.floor(Math.random()*hearts.length)];
+    const rect = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : {left:200,top:300};
+    el.style.left = (rect.left + Math.random()*60 - 20) + "px";
+    el.style.top  = (rect.top - 10) + "px";
+    document.body.appendChild(el); setTimeout(() => el.remove(), 1100);
+  }, i * 80);
+}
+
+// ─────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────
+function showToast(msg) {
+  const c = document.getElementById("toast-container");
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
+  c.appendChild(t); setTimeout(() => t.remove(), 4200);
+}
+
+// ─────────────────────────────────────────────────
+// NOTIFICATION LOOP
+// ─────────────────────────────────────────────────
+function startNotificationLoop() {
+  const msgs = [
+    () => { if (!APP.shops.length) return; const s = APP.shops[Math.floor(Math.random()*APP.shops.length)]; showToast("+₹" + (Math.random()*15+3).toFixed(2) + " equity trickled in from " + s.name + " 🌸"); },
+    () => { const ins = ["Gariahat footfall up 12% today 📊","8B Chai rating climbed to 4.9 ⭐","New merchant joined your area 🏪","Salt Lake stakes rising 5% 📈","3 neighbours earned equity today 💖"]; showToast(ins[Math.floor(Math.random()*ins.length)]); }
+  ];
+  let tick = 0;
+  setInterval(() => { msgs[tick % msgs.length](); tick++; }, 8000);
+}
+
+// ─────────────────────────────────────────────────
+// AI CHAT BUBBLE
+// ─────────────────────────────────────────────────
+function toggleAIChat() {
+  document.getElementById("ai-chat-panel").classList.toggle("open");
+  if (APP.shops.length > 0) {
+    const top = APP.shops.reduce((a, b) => shopTokens(a) > shopTokens(b) ? a : b);
+    document.getElementById("ai-chat-msg").textContent = "Based on your " + shopTokens(top) + " tokens in " + top.name + ", visit nearby shops to earn 2x tokens! 💖";
+  }
+}
+
+// ─────────────────────────────────────────────────
+// PRODUCT DRAWER + CART
+// ─────────────────────────────────────────────────
+let activeDrawerShopId = null;
+let cart = [];
+
+function openDrawer(shopId) {
+  activeDrawerShopId = shopId; cart = []; renderCart();
+  const shop = ALL_SHOPS_FLAT.find(s => s.id === shopId);
+  const products = PRODUCTS[shopId];
+  document.getElementById("drawer-shop-name").textContent = shop ? shop.name : "Online Store";
+  const container = document.getElementById("drawer-products"); container.innerHTML = "";
+  products.forEach((p, idx) => {
+    const div = document.createElement("div"); div.className = "product-card";
+    div.innerHTML = `<div class="product-emoji">${p.emoji}</div><div style="font-size:13px;font-weight:700;line-height:1.3;">${p.name}</div><div style="font-size:11px;color:#bbb;">${p.desc}</div><div style="font-size:14px;font-weight:800;color:#ff8fa3;">${p.price}</div><button class="product-buy-btn" id="pbtn-${shopId}-${idx}" onclick="addToCart(${shopId},${idx})">Add to Cart</button>`;
+    container.appendChild(div);
+  });
+  document.getElementById("product-drawer-overlay").classList.add("open");
+  openCartBody();
+}
+function closeDrawer() { document.getElementById("product-drawer-overlay").classList.remove("open"); activeDrawerShopId = null; }
+function handleOverlayClick(e) { if (e.target === document.getElementById("product-drawer-overlay")) closeDrawer(); }
+
+function addToCart(shopId, idx) {
+  const p = PRODUCTS[shopId][idx]; if (!p) return;
+  const priceNum = parseFloat(p.price.replace(/[₹,]/g,"")) || 199;
+  cart.push({shopId, idx, name:p.name, price:p.price, priceNum, emoji:p.emoji});
+  renderCart();
+  const btn = document.getElementById("pbtn-"+shopId+"-"+idx);
+  if (btn) { const orig = btn.textContent; btn.textContent = "Added ✓"; btn.style.background = "linear-gradient(135deg,#4caf50,#388e3c)"; setTimeout(() => { btn.textContent = orig; btn.style.background = ""; }, 900); }
+  const badge = document.getElementById("cart-count-badge");
+  badge.classList.remove("bump"); void badge.offsetWidth; badge.classList.add("bump");
+  setTimeout(() => badge.classList.remove("bump"), 300);
+  openCartBody();
+}
+function removeFromCart(i) { cart.splice(i, 1); renderCart(); }
+function renderCart() {
+  const list   = document.getElementById("cart-items-list");
+  const badge  = document.getElementById("cart-count-badge");
+  const footer = document.getElementById("cart-footer");
+  const total  = document.getElementById("cart-total-value");
+  badge.textContent = cart.length;
+  if (!cart.length) { list.innerHTML = '<div style="text-align:center;padding:14px 0 6px;font-size:12px;color:#ccc;">Your cart is empty 🌸</div>'; footer.classList.remove("visible"); return; }
+  list.innerHTML = ""; let sum = 0;
+  cart.forEach((item, i) => {
+    sum += item.priceNum;
+    const row = document.createElement("div"); row.className = "cart-item";
+    row.innerHTML = `<span class="cart-item-emoji">${item.emoji}</span><div class="cart-item-info"><div class="cart-item-name">${item.name}</div><div class="cart-item-price">${item.price}</div></div><button class="cart-remove-btn" onclick="removeFromCart(${i})">✕</button>`;
+    list.appendChild(row);
+  });
+  total.textContent = "₹" + sum.toLocaleString("en-IN");
+  footer.classList.add("visible");
+}
+function toggleCartBody() { document.getElementById("cart-body").classList.toggle("open"); document.getElementById("cart-chevron").classList.toggle("open"); }
+function openCartBody()   { document.getElementById("cart-body").classList.add("open");   document.getElementById("cart-chevron").classList.add("open"); }
+
+function checkoutCart() {
+  if (!cart.length) {
+    const btn = document.getElementById("checkout-btn");
+    btn.classList.add("shake"); setTimeout(() => btn.classList.remove("shake"), 450);
+    showToast("Add something to your cart first! 🛍️"); return;
+  }
+  const shop    = ALL_SHOPS_FLAT.find(s => s.id === activeDrawerShopId);
+  const cartCopy = [...cart];
+  const total    = cartCopy.reduce((s, i) => s + i.priceNum, 0);
+  const equity   = calculateEquity(total);
+  const tokens   = Math.round(equity * 40);
+
+  APP.totalSpend  += total;
+  APP.totalEquity += equity;
+  localStorage.setItem("ol_spend",  APP.totalSpend.toFixed(2));
+  localStorage.setItem("ol_equity", APP.totalEquity.toFixed(2));
+  applyEquityToShop(shop, equity);
+  updateEquityBar();
+
+  const entry = {
+    shopName: shop ? shop.name : "Online Store",
+    emoji:    shop ? shop.emoji : "🛍️",
+    total:    total.toLocaleString("en-IN"),
+    tokens,
+    date: new Date().toLocaleDateString("en-IN", {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})
+  };
+  APP.activityLedger.push(entry);
+  if (APP.activityLedger.length > 50) APP.activityLedger.shift();
+  localStorage.setItem("ol_ledger", JSON.stringify(APP.activityLedger));
+
+  heartBurst(document.getElementById("checkout-btn"));
+  showToast("✅ " + cartCopy.length + " item" + (cartCopy.length > 1 ? "s" : "") + " · ₹" + total.toLocaleString("en-IN") + " · +" + tokens + " tokens 🌸");
+  cart = []; renderCart();
+  setTimeout(() => closeDrawer(), 1200);
+}
+
+// ─────────────────────────────────────────────────
+// PORTFOLIO — populate & tab switching
+// ─────────────────────────────────────────────────
+function populatePortfolio() {
+  const loc = LOCATION_DATABASE[APP.pincode];
+  document.getElementById("pv-location-pill").textContent = "📍 " + (loc ? loc.label : APP.pincode || "—");
+
+  const totalTok = ALL_SHOPS_FLAT.reduce((s, sh) => s + shopTokens(sh), 0);
+  document.getElementById("pv-total-eq").textContent     = "₹" + APP.totalEquity.toFixed(2);
+  document.getElementById("pv-total-tokens").textContent = totalTok.toLocaleString();
+
+  const holdings = ALL_SHOPS_FLAT
+    .map(sh => ({ name:sh.name, emoji:sh.emoji, tokens:shopTokens(sh), pct:parseFloat(shopPct(sh)) }))
+    .sort((a,b) => b.pct - a.pct)
+    .slice(0, 8);
+
+  const hList = document.getElementById("pv-holdings"); hList.innerHTML = "";
+  const nonZero = holdings.filter(h => h.tokens > 0);
+  if (!nonZero.length) {
+    hList.innerHTML = '<div style="font-size:12px;color:#ccc;text-align:center;padding:12px 0;">Shop locally to build your portfolio 🌸</div>';
+  } else {
+    nonZero.forEach(h => {
+      const fill = Math.min((h.pct / 12) * 100, 100).toFixed(1);
+      const row  = document.createElement("div"); row.className = "holding-row";
+      row.innerHTML = `<span style="font-size:18px;">${h.emoji}</span><span style="font-size:12px;font-weight:700;flex:0 0 150px;">${h.name}</span><div class="holding-bar-wrap"><div class="holding-bar-fill" style="width:${fill}%;"></div></div><span style="font-size:11px;font-weight:800;color:#ff8fa3;">${h.pct.toFixed(2)}%</span>`;
+      hList.appendChild(row);
+    });
+  }
+
+  const sellEl = document.getElementById("pv-sell-orders"); sellEl.innerHTML = "";
+  const sellable = ALL_SHOPS_FLAT.filter(sh => shopTokens(sh) > 0).slice(0, 6);
+  if (!sellable.length) {
+    sellEl.innerHTML = '<div style="font-size:12px;color:#ccc;text-align:center;padding:12px 0;">No tokens to list yet. Shop locally to earn! 🌸</div>';
+  } else {
+    sellable.forEach(sh => {
+      const toks  = shopTokens(sh);
+      const price = (toks * 1.2).toFixed(0);
+      const div   = document.createElement("div"); div.className = "sell-order-row";
+      div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:700;">${sh.emoji} ${sh.name}</span><span style="font-size:11px;font-weight:800;color:#ff8fa3;">${toks} tokens</span></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;"><span style="font-size:10px;color:#aaa;">List at ₹${price} (est.)</span><button class="pill-action-btn" onclick="listTokens('${sh.name}',${toks},${price})">List for Sale</button></div>`;
+      sellEl.appendChild(div);
+    });
+  }
+
+  const trends = [
+    {area:"Salt Lake stakes",   change:"+5%", up:true},
+    {area:"Gariahat area",      change:"+12%",up:true},
+    {area:"8B Chai tokens",     change:"+8%", up:true},
+    {area:"Park St Jewels",     change:"+31%",up:true},
+    {area:"Trackside Tools",    change:"-4%", up:false},
+    {area:"Belgharia Books",    change:"+6%", up:true},
+    {area:"Heritage Sarees",    change:"+19%",up:true}
+  ];
+  const tEl = document.getElementById("pv-trends"); tEl.innerHTML = "";
+  trends.forEach(t => {
+    const row = document.createElement("div"); row.className = "mkt-trend-row";
+    row.innerHTML = `<span style="font-size:12px;font-weight:600;">${t.area}</span><span class="${t.up?'mkt-up':'mkt-down'}">${t.change} this week</span>`;
+    tEl.appendChild(row);
+  });
+
+  const ledgerEl = document.getElementById("pv-ledger"); ledgerEl.innerHTML = "";
+  if (!APP.activityLedger.length) {
+    ledgerEl.innerHTML = '<div style="font-size:12px;color:#ccc;text-align:center;padding:12px 0;">No transactions yet. Make your first purchase! 🛍️</div>';
+  } else {
+    const recent = [...APP.activityLedger].reverse().slice(0, 15);
+    recent.forEach(entry => {
+      const row = document.createElement("div"); row.className = "ledger-row";
+      row.innerHTML = `<span style="font-size:20px;">${entry.emoji}</span><div style="flex:1;"><div style="font-weight:700;font-size:12px;">${entry.shopName}</div><div style="font-size:10px;color:#aaa;">${entry.date}</div></div><div style="text-align:right;"><div style="font-size:12px;font-weight:800;">₹${entry.total}</div><div style="font-size:10px;color:#4caf50;font-weight:700;">+${entry.tokens} tokens</div></div>`;
+      ledgerEl.appendChild(row);
+    });
+  }
+}
+
+function switchPortfolioTab(tab, btn) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("ptab-" + tab).classList.add("active");
+  btn.classList.add("active");
+}
+
+function listTokens(name, tokens, price) {
+  showToast("💸 Listed " + tokens + " tokens from " + name + " at ₹" + price + "! A neighbour will claim it soon. 🌸");
+}
+
+// ─────────────────────────────────────────────────
+// MERCHANT SUITE — populate
+// ─────────────────────────────────────────────────
+function populateMerchantSuite() {
+  const name = APP.merchantName || "Your Shop";
+  const pin  = document.getElementById("pf-pin").value.trim() || APP.pincode;
+  const loc  = LOCATION_DATABASE[pin] || LOCATION_DATABASE[APP.pincode];
+  const area = loc ? loc.label.split("/")[0].trim() : "Your Area";
+
+  document.getElementById("ms-shop-pill").textContent = "🏪 " + name;
+  document.getElementById("ms-rank").textContent = "#3 in " + area + " (based on loyalty)";
+
+  const totalTok = ALL_SHOPS_FLAT.reduce((s, sh) => s + shopTokens(sh), 0);
+  const gold   = Math.max(1,  Math.floor(totalTok / 800));
+  const silver = Math.max(5,  Math.floor(totalTok / 200));
+  const bronze = Math.max(20, Math.floor(totalTok / 50));
+  document.getElementById("ms-gold").textContent   = gold;
+  document.getElementById("ms-silver").textContent = silver;
+  document.getElementById("ms-bronze").textContent = bronze;
+  document.getElementById("ms-visitors").textContent  = (gold*12 + silver*3 + bronze).toLocaleString();
+  document.getElementById("ms-avg-spend").textContent = "₹" + Math.max(180, Math.floor(APP.totalSpend / Math.max(1, gold+silver+bronze)));
+
+  const dist = Math.min(((APP.totalSpend / 200000) * 10), 10).toFixed(1);
+  const barW = Math.min((parseFloat(dist) / 10) * 100, 100).toFixed(1);
+  document.getElementById("ms-pool-pct").textContent = dist + "%";
+  document.getElementById("ms-pool-bar").style.width = barW + "%";
+  document.getElementById("ms-pool-sub").textContent = dist + " of 10% max distributed · " + (10 - parseFloat(dist)).toFixed(1) + "% remaining";
+
+  const stakes = [
+    {name:"Priya K.",tier:"🥇 Gold",  pct:"2.40%",toks:"240"},
+    {name:"Arjun M.",tier:"🥈 Silver",pct:"1.20%",toks:"120"},
+    {name:"Riya S.", tier:"🥉 Bronze",pct:"0.85%",toks:"85"},
+    {name:"Dev P.",  tier:"🥉 Bronze",pct:"0.60%",toks:"60"},
+    {name:"Anika R.",tier:"🥉 Bronze",pct:"0.45%",toks:"45"}
+  ];
+  const tbody = document.getElementById("ms-stake-table"); tbody.innerHTML = "";
+  stakes.forEach((s, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td style="color:#aaa;font-size:11px;">#${i+1}</td><td>${s.name}</td><td>${s.tier}</td><td style="color:#ff8fa3;">${s.pct}</td><td>${s.toks}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const reviews = [
+    {author:"Priya K. 🥇 Gold",  text:"This shop is part of my weekly routine. The equity model makes me feel like I actually own a part of it!"},
+    {author:"Arjun M. 🥈 Silver",text:"Exceptional service. I vote in every monthly poll — love the voting rights as a Silver member."},
+    {author:"Riya S. 🥉 Bronze", text:"Great products, smooth delivery. Hoping to hit Silver soon for the discount perks!"}
+  ];
+  const revEl = document.getElementById("ms-reviews"); revEl.innerHTML = "";
+  reviews.forEach(r => {
+    const div = document.createElement("div"); div.className = "review-card";
+    div.innerHTML = `<div class="review-author">${r.author}</div><div class="review-text">${r.text}</div>`;
+    revEl.appendChild(div);
+  });
+}
+
+// ─────────────────────────────────────────────────
+// MODULE 2 — OFFLINE TRANSACTION VERIFIER
+// Isolated entirely within the Merchant Suite section.
+// Does NOT interact with showSection or any other view.
+// ─────────────────────────────────────────────────
+function confirmOfflineMint() {
+  const phone  = document.getElementById("offline-phone").value.trim();
+  const amount = parseFloat(document.getElementById("offline-amount").value.trim());
+
+  if (!/^\d{10}$/.test(phone)) {
+    showToast("Please enter a valid 10-digit customer phone number 📱");
+    document.getElementById("offline-phone").focus();
+    return;
+  }
+  if (!amount || amount <= 0) {
+    showToast("Please enter a valid bill amount ₹");
+    document.getElementById("offline-amount").focus();
+    return;
+  }
+
+  const btn     = document.getElementById("offline-mint-btn");
+  const spinner = document.getElementById("offline-spinner");
+  const label   = document.getElementById("offline-btn-text");
+
+  // Disable + show spinner
+  btn.disabled = true;
+  spinner.classList.add("show");
+  label.textContent = "Syncing Ledger…";
+
+  setTimeout(() => {
+    // Reset UI
+    btn.disabled = false;
+    spinner.classList.remove("show");
+    label.textContent = "Confirm & Mint Equity ✨";
+
+    // Calculate equity tokens for this bill
+    const equity = calculateEquity(amount);
+    const tokens = Math.round(equity * 40);
+
+    // Simulate pushing to customer wallet by updating app state
+    APP.totalSpend  += amount;
+    APP.totalEquity += equity;
+    localStorage.setItem("ol_spend",  APP.totalSpend.toFixed(2));
+    localStorage.setItem("ol_equity", APP.totalEquity.toFixed(2));
+
+    // Log in ledger as an offline transaction
+    const entry = {
+      shopName: APP.merchantName || "Your Shop",
+      emoji:    "🏪",
+      total:    amount.toLocaleString("en-IN"),
+      tokens,
+      date: new Date().toLocaleDateString("en-IN", {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})
+    };
+    APP.activityLedger.push(entry);
+    if (APP.activityLedger.length > 50) APP.activityLedger.shift();
+    localStorage.setItem("ol_ledger", JSON.stringify(APP.activityLedger));
+    updateEquityBar();
+
+    // Clear fields
+    document.getElementById("offline-phone").value  = "";
+    document.getElementById("offline-amount").value = "";
+
+    showToast("Success: Equity Pushed to User! ✨ +" + tokens + " tokens for +91 " + phone.slice(0,5) + "XXXXX");
+  }, 1000);
+}
+
+// ─────────────────────────────────────────────────
+// PARTNER FORM & GSTIN
+// ─────────────────────────────────────────────────
+function openPartnerForm()  { document.getElementById("partner-overlay").classList.add("open"); }
+function closePartnerForm() { document.getElementById("partner-overlay").classList.remove("open"); }
+function handlePartnerOverlayClick(e) { if (e.target === document.getElementById("partner-overlay")) closePartnerForm(); }
+
+function submitPartnerForm() {
+  const name     = document.getElementById("pf-name").value.trim();
+  const pin      = document.getElementById("pf-pin").value.trim();
+  const gstin    = document.getElementById("pf-gstin").value.trim().toUpperCase();
+  const password = document.getElementById("pf-password").value.trim();
+
+  if (!name)               { showToast("Please enter your shop name ✨"); return; }
+  if (pin.length !== 6)    { showToast("Please enter a valid 6-digit pincode ✨"); return; }
+  if (gstin.length !== 15) { showToast("GSTIN must be exactly 15 characters ✨"); return; }
+  if (!password)           { showToast("Please create a password ✨"); return; }
+
+  const category = document.getElementById("pf-category").value;
+  const email    = document.getElementById("pf-email").value.trim();
+  const footfall = parseInt(document.getElementById("pf-footfall").value) || 0;
+
+  fetch("http://localhost:5000/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ shop_name: name, password: password, category: category, pincode: pin, gstin: gstin, email: email, monthly_footfall: footfall })
+  })
+  .then(r => r.json().then(data => ({ ok: r.ok, data })))
+  .then(res => {
+    if (!res.ok) {
+      const errMsg = res.data.detail || "Registration failed. Please check your details.";
+      showToast("❌ " + errMsg);
+      return;
+    }
+    closePartnerForm();
+    const spinner = document.getElementById("gstin-spinner");
+    spinner.classList.add("show");
+    setTimeout(() => {
+      spinner.classList.remove("show");
+      // Store merchant session in localStorage
+      localStorage.setItem("ol_merchant_name", name);
+      localStorage.setItem("ol_merchant_logged_in", "true");
+      localStorage.setItem("ol_merchant_is_demo", "false");
+      APP.merchantName = name;
+      hideShops();
+      showSection("section-merchant");
+      populateMerchantSuite();
+      showToast("✅ Registered & Logged in! Welcome, " + name + " 🏪");
+    }, 2000);
+  })
+  .catch(err => {
+    console.log("Signup request failed:", err);
+    showToast("⚠️ Cannot reach backend. Is Flask running? (python main_flask.py)");
+  });
+}
+
+// ── MERCHANT LOGIN MODAL ──
+function openLoginModal() {
+  document.getElementById("ml-shopname").value  = "";
+  document.getElementById("ml-password").value  = "";
+  document.getElementById("login-error").style.display = "none";
+  document.getElementById("login-overlay").classList.add("open");
+}
+function closeLoginModal() {
+  document.getElementById("login-overlay").classList.remove("open");
+}
+function handleLoginOverlayClick(e) {
+  if (e.target === document.getElementById("login-overlay")) closeLoginModal();
+}
+
+function populateMerchantDashboard(profile) {
+  // Populate the existing section-merchant with real DB data
+  const pill = document.getElementById("ms-shop-pill");
+  if (pill) pill.textContent = "🏪 " + profile.shop_name;
+  APP.merchantName = profile.shop_name;
+  populateMerchantSuite();
+}
+
+function submitMerchantLogin() {
+  const name     = document.getElementById("ml-shopname").value.trim();
+  const password = document.getElementById("ml-password").value.trim();
+  const errBox   = document.getElementById("login-error");
+
+  if (!name || !password) {
+    errBox.textContent = "Please enter both shop name and password.";
+    errBox.style.display = "block"; return;
+  }
+  errBox.style.display = "none";
+
+  fetch("http://localhost:5000/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ shop_name: name, password: password })
+  })
+  .then(r => r.json().then(data => ({ ok: r.ok, data })))
+  .then(res => {
+    if (!res.ok) {
+      const errMsg = res.data.detail || "Login failed. Please check your credentials.";
+      errBox.textContent = "❌ " + errMsg;
+      errBox.style.display = "block";
+      return;
+    }
+    closeLoginModal();
+    // Persist session in localStorage
+    localStorage.setItem("ol_merchant_name", name);
+    localStorage.setItem("ol_merchant_logged_in", "true");
+    localStorage.setItem("ol_merchant_is_demo", res.data.is_demo ? "true" : "false");
+    APP.merchantName = name;
+    // Populate with profile data from login response if available
+    if (res.data.profile) {
+      populateMerchantDashboard(res.data.profile);
+    } else {
+      // Fallback: fetch profile separately
+      fetch("http://localhost:5000/merchant-profile?shop_name=" + encodeURIComponent(name))
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(profile => {
+          if (!profile.ok) {
+            console.log("Merchant profile error:", profile.data.detail);
+            populateMerchantSuite();
+            return;
+          }
+          populateMerchantDashboard(profile.data);
+        })
+        .catch(err => {
+          console.log("Error fetching merchant profile:", err);
+          populateMerchantSuite();
+        });
+    }
+    hideShops();
+    showSection("section-merchant");
+    showToast("✅ Welcome back, " + name + "! 🏪");
+  })
+  .catch(err => {
+    console.log("Login request failed:", err);
+    errBox.textContent = "⚠️ Cannot reach backend. Is Flask running? (python main_flask.py)";
+    errBox.style.display = "block";
+  });
+}
+
+// ─────────────────────────────────────────────────
+// LOGOUT
+// ─────────────────────────────────────────────────
+function handleLogout() {
+  // Clear all session data
+  APP.authState    = "guest";
+  APP.merchantName = "";
+  isUserLoggedIn   = false;
+
+  // Remove all persisted session keys
+  localStorage.removeItem("ol_auth");
+  localStorage.removeItem("ol_merchant_name");
+  localStorage.removeItem("ol_merchant_logged_in");
+
+  // Reset app location state
+  APP.pincode = "";
+  APP.shops   = [];
+  localStorage.removeItem("ol_pincode");
+
+  // Hide UI chrome
+  document.getElementById("equity-bar").classList.remove("show");
+  document.getElementById("nav-location-wrap").style.display = "none";
+  document.getElementById("pin-input").value = "";
+
+  // Return to pincode entry screen
+  hideShops();
+  showSection("section-pincode");
+  syncAuthButtons();
+  showToast("👋 You've been logged out. See you soon!");
+}
+</script>
+</body>
+</html>
